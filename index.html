@@ -4,19 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zone Gaming QC | Ta Zone, Ton Équipe</title>
-    <!-- Icône du serveur -->
-    <link rel="icon" type="image/webp" href="https://cdn.discordapp.com/icons/1531829572453007533/a_1531829572453007533.webp?size=1024">
-    <link rel="apple-touch-icon" href="https://cdn.discordapp.com/icons/1531829572453007533/a_1531829572453007533.webp?size=1024">
-    <meta name="description" content=" Communauté gaming QC dynamique & accueillante! Events, multigaming & bonne humeur 🍁">
+    <!-- Nouveau Logo Serveur -->
+    <link rel="icon" type="image/webp" href="https://cdn.discordapp.com/icons/1531829572453007533/c69bf91096081b8274e81a0a0eefa18e.webp?size=1024">
+    <link rel="apple-touch-icon" href="https://cdn.discordapp.com/icons/1531829572453007533/c69bf91096081b8274e81a0a0eefa18e.webp?size=1024">
+    <meta name="description" content="🎮 Communauté gaming QC dynamique & accueillante! Events, multigaming & bonne humeur 🍁">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Zone Gaming QC">
     <meta property="og:title" content="Zone Gaming QC — Ta Zone, Ton Équipe">
     <meta property="og:description" content="Serveur Discord Gaming 100% Québécois. Multigaming, événements, tournois et communauté active. Rejoins la zone !">
     <meta property="og:url" content="https://zonegamingqc.github.io/">
     <meta property="og:locale" content="fr_CA">
-    <meta property="og:image" content="https://cdn.discordapp.com/icons/1531829572453007533/a_1531829572453007533.webp?size=1024">
+    <meta property="og:image" content="https://cdn.discordapp.com/icons/1531829572453007533/c69bf91096081b8274e81a0a0eefa18e.webp?size=1024">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="https://cdn.discordapp.com/icons/1531829572453007533/a_1531829572453007533.webp?size=1024">
+    <meta name="twitter:image" content="https://cdn.discordapp.com/icons/1531829572453007533/c69bf91096081b8274e81a0a0eefa18e.webp?size=1024">
     <meta name="theme-color" content="#1e3a5f">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -149,6 +149,47 @@
         .team-card h3{font-size:1.5rem;background:var(--grad-gold);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;font-weight:800}
         .team-role{display:inline-block;padding:5px 15px;border-radius:20px;font-size:.85rem;font-weight:700;margin-bottom:15px;background:var(--grad-gold);color:var(--nuit-1)}
         .team-card p{color:var(--taupe);line-height:1.7;font-size:.95rem;flex-grow:1}
+        
+        /* Styles spécifiques pour les cartes Recrutement/Partenaire */
+        .action-card {
+            background: linear-gradient(135deg, rgba(201,169,97,0.05), rgba(30,58,95,0.2));
+            border: 2px dashed var(--gold);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .action-card:hover {
+            background: linear-gradient(135deg, rgba(201,169,97,0.1), rgba(30,58,95,0.3));
+            border-style: solid;
+        }
+        .action-card .team-img-wrap { margin-bottom: 15px; }
+        .action-card .team-img-wrap::after { display: none; }
+        .action-card .team-img { 
+            width: 80px; height: 80px; 
+            background: var(--nuit-2); 
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; color: var(--gold);
+            border: none;
+        }
+        .action-btn {
+            margin-top: auto;
+            padding: 8px 20px;
+            border-radius: 20px;
+            background: transparent;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .action-btn:hover {
+            background: var(--gold); color: var(--nuit-1);
+        }
+
         .faq-container{max-width:850px;margin:0 auto}
         .faq-item{background:rgba(30,40,58,.5);border-radius:20px;margin-bottom:25px;border:2px solid var(--border);overflow:hidden;transition:all .5s;backdrop-filter:blur(10px)}
         .faq-item:hover{border-color:var(--gold);box-shadow:0 15px 50px rgba(30,58,95,.4)}
@@ -237,7 +278,8 @@
     <div class="mesh-bg"><div class="mesh-blob"></div><div class="mesh-blob"></div><div class="mesh-blob"></div></div>
     <div class="progress-dots" id="progressDots"></div>
     <div class="preloader" id="preloader">
-        <img src="https://cdn.discordapp.com/icons/1531829572453007533/a_1531829572453007533.webp?size=1024" alt="Logo Zone Gaming QC" class="preloader-logo">
+        <!-- Nouveau Logo Serveur -->
+        <img src="https://cdn.discordapp.com/icons/1531829572453007533/c69bf91096081b8274e81a0a0eefa18e.webp?size=1024" alt="Logo Zone Gaming QC" class="preloader-logo">
         <div class="preloader-percent" id="preloaderPercent">0%</div>
         <div class="preloader-bar"><i id="preloaderBarFill"></i></div>
         <div class="preloader-text">Chargement</div>
@@ -246,7 +288,8 @@
     <canvas id="particleCanvas"></canvas>
     <header id="header">
         <div class="container"><nav>
-            <a href="#" class="logo"><img src="https://cdn.discordapp.com/icons/1531829572453007533/a_1531829572453007533.webp?size=1024" alt="Logo"><h1>Zone Gaming QC</h1></a>
+            <!-- Nouveau Logo Serveur -->
+            <a href="#" class="logo"><img src="https://cdn.discordapp.com/icons/1531829572453007533/c69bf91096081b8274e81a0a0eefa18e.webp?size=1024" alt="Logo"><h1>Zone Gaming QC</h1></a>
             <ul class="nav-links" id="navLinks">
                 <li><a href="#accueil" class="nav-link">Accueil</a></li>
                 <li><a href="#apropos" class="nav-link">À propos</a></li>
@@ -299,6 +342,8 @@
                 <div class="rule-card reveal-right"><span class="rule-num">06</span><h4><i class="fas fa-user-shield"></i> Autorité du Staff</h4><p>Les décisions du staff sont finales. Contestation en privé uniquement (tickets/MP). L'insubordination publique sera sanctionnée.</p></div>
                 <div class="rule-card reveal-left"><span class="rule-num">07</span><h4><i class="fas fa-lock"></i> Vie Privée</h4><p>Ne partage jamais tes infos personnelles et ne publie pas celles des autres (doxxing). Partage de comptes ou vente illégale interdite.</p></div>
                 <div class="rule-card reveal-right"><span class="rule-num">08</span><h4><i class="fas fa-eye-slash"></i> Spoilers Balisés</h4><p>Utilise la balise ||spoiler|| pour les sorties récentes de jeux, films ou séries. Ne gâche pas le plaisir de découverte des autres membres.</p></div>
+                <!-- NOUVELLE CARTE RÈGLEMENT #09 -->
+                <div class="rule-card reveal-left"><span class="rule-num">09</span><h4><i class="fas fa-gavel"></i> Sanctions & Échelle</h4><p>Le staff se réserve le droit d'adapter les sanctions selon la gravité. Avertissement ️ Mute ➡️ Kick ➡️ Ban définitif pour les cas graves.</p></div>
             </div>
         </div>
     </section>
@@ -324,27 +369,39 @@
                     <p>Expert technique et co-fondateur. Il assure le développement, la maintenance et l'optimisation du serveur pour offrir la meilleure expérience possible.</p>
                     <p style="margin-top:15px;font-size:.9rem"><i class="fab fa-discord"></i> @jacobin904</p>
                 </div>
-                <div class="team-card tilt">
+                <!-- Espace vide pour garder la grille équilibrée si besoin, ou supprimer cette div -->
+                <div class="team-card" style="visibility: hidden;"></div>
+                <div class="team-card" style="visibility: hidden;"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- NOUVELLE SECTION RECRUTEMENT & PARTENARIAT (SÉPARÉE DE L'ÉQUIPE) -->
+    <section id="actions" style="padding-top: 0;">
+        <div class="container">
+            <div class="team-grid stagger">
+                <div class="team-card action-card tilt">
                     <div class="team-img-wrap">
-                        <img src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Recrutement" class="team-img">
+                        <div class="team-img"><i class="fas fa-user-plus"></i></div>
                     </div>
                     <h3>Rejoins l'équipe</h3>
                     <span class="team-role">Recrutement Ouvert</span>
                     <p>Tu es motivé, mature et passionné ? Nous cherchons régulièrement de nouveaux talents pour renforcer notre équipe de modération et d'animation.</p>
-                    <p style="margin-top:15px;font-size:.9rem"><i class="fas fa-arrow-right"></i> Voir les candidatures</p>
+                    <a href="https://discord.gg/d8g2eztfbM" class="action-btn" target="_blank"><i class="fas fa-arrow-right"></i> Voir les candidatures</a>
                 </div>
-                <div class="team-card tilt">
+                <div class="team-card action-card tilt">
                     <div class="team-img-wrap">
-                        <img src="https://cdn.discordapp.com/embed/avatars/1.png" alt="Partenaire" class="team-img">
+                        <div class="team-img"><i class="fas fa-handshake"></i></div>
                     </div>
                     <h3>Devenir Partenaire</h3>
                     <span class="team-role">Collaboration</span>
                     <p>Tu as un serveur ou un projet complémentaire ? Propose-nous un partenariat pour grandir ensemble et offrir plus de valeur à nos communautés.</p>
-                    <p style="margin-top:15px;font-size:.9rem"><i class="fas fa-handshake"></i> Contacter le staff</p>
+                    <a href="https://discord.gg/d8g2eztfbM" class="action-btn" target="_blank"><i class="fas fa-envelope"></i> Contacter le staff</a>
                 </div>
             </div>
         </div>
     </section>
+
     <section id="faq">
         <div class="container">
             <div class="section-header reveal"><h2>Questions Fréquentes</h2><p>Tout ce que tu dois savoir avant de rejoindre la Zone.</p></div>
@@ -402,7 +459,7 @@
                 <h4>Liens Utiles</h4>
                 <ul>
                     <li><a href="https://discord.gg/d8g2eztfbM" target="_blank" rel="noopener noreferrer"><i class="fab fa-discord"></i> Invitation Discord</a></li>
-                    <li><a href="#equipe"><i class="fas fa-user-plus"></i> Recrutement Staff</a></li>
+                    <li><a href="#actions"><i class="fas fa-user-plus"></i> Recrutement Staff</a></li>
                     <li><a href="#reglements"><i class="fas fa-gavel"></i> Règlement Complet</a></li>
                 </ul>
             </div>
@@ -410,6 +467,7 @@
                 <h4>Conception</h4>
                 <p>Site web conçu et développé avec passion pour la communauté Zone Gaming QC.</p>
                 <div style="display:flex;align-items:center;gap:15px;margin-top:25px">
+                    <!-- Nouveau Logo Jacobin -->
                     <img src="https://cdn.discordapp.com/avatars/1281784488854159421/70fadd7039625c055530b88dcf8a502b.webp?size=1024" alt="Jacobin Babouain" style="width:50px;height:50px;border-radius:50%;border:2px solid var(--gold)">
                     <div>
                         <p style="margin:0;font-weight:700;color:var(--cream)">Jacobin Babouain</p>
