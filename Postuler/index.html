@@ -150,21 +150,47 @@ document.getElementById('staffForm').addEventListener('submit', async function(e
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi en cours...';
     status.style.display = 'none';
 
+    const discordId = document.getElementById('discordId').value.trim();
+    const discordPseudo = document.getElementById('discordPseudo').value.trim();
+    const disponibilite = document.getElementById('disponibilite').value;
+    const experience = document.getElementById('experience').value.trim();
+    const motivation = document.getElementById('motivation').value.trim();
+
+    // Embed envoyé au Webhook de Réception (pour le bot)
     const data = {
         username: 'Zone Gaming QC - Candidatures',
         avatar_url: 'https://cdn.discordapp.com/icons/1531829572453007533/c69bf91096081b8274e81a0a0eefa18e.webp?size=1024',
         embeds: [{
-            title: '📋 Nouvelle Candidature Staff',
+            title: ' Nouvelle Candidature Staff',
             color: 0xc9a961,
+            description: `**Candidat:** ${discordPseudo}\n**ID:** \`${discordId}\``,
             fields: [
-                { name: '<:discord:1234> Pseudo', value: document.getElementById('discordPseudo').value, inline: true },
-                { name: '<:id:1234> ID Discord', value: '`' + document.getElementById('discordId').value + '`', inline: true },
-                { name: '<:clock:1234> Disponibilite', value: document.getElementById('disponibilite').value, inline: true },
-                { name: '<:star:1234> Experience', value: document.getElementById('experience').value.substring(0, 1000) },
-                { name: '<:heart:1234> Motivation', value: document.getElementById('motivation').value.substring(0, 1000) }
+                { name: 'Disponibilité', value: disponibilite, inline: true },
+                { name: 'Expérience', value: experience.substring(0, 1024), inline: false },
+                { name: 'Motivation', value: motivation.substring(0, 1024), inline: false }
             ],
             footer: { text: 'Zone Gaming QC | Candidature Staff', icon_url: 'https://cdn.discordapp.com/icons/1531829572453007533/c69bf91096081b8274e81a0a0eefa18e.webp?size=1024' },
             timestamp: new Date().toISOString()
+        }],
+        // Composants pour le Bot (Boutons Approuver / Refuser)
+        components: [{
+            type: 1,
+            components: [
+                {
+                    type: 2,
+                    style: 3,
+                    label: 'Approuver',
+                    custom_id: `approve_staff_${discordId}`,
+                    emoji: { name: '✅' }
+                },
+                {
+                    type: 2,
+                    style: 4,
+                    label: 'Refuser',
+                    custom_id: `deny_staff_${discordId}`,
+                    emoji: { name: '❌' }
+                }
+            ]
         }]
     };
 
@@ -184,6 +210,7 @@ document.getElementById('staffForm').addEventListener('submit', async function(e
             throw new Error('Erreur serveur');
         }
     } catch (err) {
+        console.error(err);
         status.className = 'status-msg error';
         status.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erreur lors de l\'envoi. Reessaie plus tard.';
         status.style.display = 'block';
@@ -192,28 +219,6 @@ document.getElementById('staffForm').addEventListener('submit', async function(e
         btn.innerHTML = '<i class="fas fa-paper-plane"></i> Envoyer ma candidature';
     }
 });
-
-/* 
-    NOTE IMPORTANTE POUR LE STAFF :
-    Pour que les boutons "Approuver/Refuser" fonctionnent, tu dois configurer un bot Discord
-    ou un service d'automatisation (Make/Zapier) qui ecoute le WEBHOOK_CANDIDATURE.
-    
-    Quand le staff clique sur un bouton dans Discord, le bot doit envoyer ceci au WEBHOOK_REPONSE :
-    
-    {
-        "content": "<@USER_ID>",
-        "embeds": [{
-            "title": "📬 Reponse a ta candidature Staff",
-            "color": 0x059669, // Vert si approuve, Rouge si refuse
-            "fields": [
-                { "name": "Decision", "value": "✅ Approuvee" ou "❌ Refusee", "inline": true },
-                { "name": "Traite par", "value": "@NomDuStaff", "inline": true },
-                { "name": "Raison / Commentaire", "value": "La raison ecrite par le staff..." }
-            ],
-            "footer": { "text": "Zone Gaming QC" }
-        }]
-    }
-*/
 </script>
 </body>
 </html>
