@@ -28,27 +28,113 @@ const CONFIG = {
     logsChannelId: '1531829572914511955'
 };
 
-// ✅ HEALTH CHECK POUR RENDER (Empêche le sleep sur Free Tier)
-const server = http.createServer((req, res) => {
+// ✅ SERVEUR HTTP POUR RENDER & API CANDIDATURE
+const server = http.createServer(async (req, res) => {
+    // En-têtes CORS pour autoriser ton site web (GitHub Pages) à parler au bot
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    // Gérer les requêtes OPTIONS (preflight CORS)
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+    }
+
+    // Health check pour Render
     if (req.url === '/health') {
         res.writeHead(200);
         res.end('OK');
+        return;
+    }
+
+    // Endpoint pour recevoir les candidatures du site web
+    if (req.url === '/api/candidature' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        
+        req.on('end', async () => {
+            try {
+                // Vérifier si le bot est bien connecté à Discord
+                if (!client.isReady()) {
+                    res.writeHead(503);
+                    res.end('Bot pas encore prêt');
+                    return;
+                }
+
+                const data = JSON.parse(body);
+                const guild = client.guilds.cache.get(process.env.GUILD_ID);
+                
+                // Cherche le salon 'candidatures-staff' ou 'admin'
+                const staffChannel = guild.channels.cache.find(c => 
+                    c.name === 'candidatures-staff' || c.name === 'admin'
+                );
+
+                if (!staffChannel) {
+                    console.error('Salon staff non trouvé. Crée un salon nommé "candidatures-staff" ou "admin".');
+                    res.writeHead(500);
+                    res.end('Salon staff non trouve');
+                    return;
+                }
+
+                // Création de l'embed
+                const embed = new EmbedBuilder()
+                    .setColor('#c9a961')
+                    .setTitle('📋 Nouvelle Candidature Staff')
+                    .setDescription(`**Candidat:** ${data.discordPseudo}\n**ID:** \`${data.discordId}\``)
+                    .addFields(
+                        { name: 'Disponibilité', value: data.disponibilite, inline: true },
+                        { name: 'Expérience', value: data.experience.substring(0, 1024), inline: false },
+                        { name: 'Motivation', value: data.motivation.substring(0, 1024), inline: false }
+                    )
+                    .setFooter({ text: 'Zone Gaming QC | Candidature Staff' })
+                    .setTimestamp();
+
+                // Création des BOUTONS INTERACTIFS
+                const row = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`approve_staff_${data.discordId}`)
+                        .setLabel('Approuver')
+                        .setStyle(ButtonStyle.Success)
+                        .setEmoji('✅'),
+                    new ButtonBuilder()
+                        .setCustomId(`deny_staff_${data.discordId}`)
+                        .setLabel('Refuser')
+                        .setStyle(ButtonStyle.Danger)
+                        .setEmoji('❌')
+                );
+
+                // Envoi du message avec les boutons via le BOT
+                await staffChannel.send({ embeds: [embed], components: [row] });
+
+                res.writeHead(200);
+                res.end('OK');
+            } catch (error) {
+                console.error('Erreur API candidature:', error);
+                res.writeHead(500);
+                res.end('Erreur interne');
+            }
+        });
     } else {
         res.writeHead(404);
         res.end();
     }
 });
+
+// Démarrage du serveur HTTP
 server.listen(process.env.PORT || 3000, () => {
-    console.log(`🌐 Health check actif sur le port ${process.env.PORT || 3000}`);
+    console.log(`🌐 Health check et API actifs sur le port ${process.env.PORT || 3000}`);
 });
 
-client.once('clientReady', () => { // ✅ Correction: clientReady au lieu de ready
+// --- ÉVÉNEMENTS DISCORD ---
+client.once('clientReady', () => {
     console.log(`✅ Bot connecté : ${client.user.tag}`);
     client.user.setActivity('Zone Gaming QC', { type: 'WATCHING' });
     registerCommands();
 });
 
-// Enregistrement automatique des commandes Slash au démarrage
+// Enregistrement automatique des commandes Slash
 async function registerCommands() {
     const commands = [
         { 
@@ -70,7 +156,7 @@ async function registerCommands() {
     }
 }
 
-// --- SYSTÈME BIENVENUE / AU REVOIR ---
+// Bienvenue
 client.on(Events.GuildMemberAdd, async (member) => {
     const channel = member.guild.channels.cache.get(CONFIG.welcomeChannelId);
     if (!channel) return;
@@ -78,7 +164,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
     const embed = new EmbedBuilder()
         .setColor('#c9a961')
         .setTitle('🎉 Bienvenue sur Zone Gaming QC !')
-        .setDescription(`Salut ${member}, ravi de te compter parmi nous !\n\n Lis le <#1531831739431911486>\n Prends tes rôles dans <#1531832520016924793>`)
+        .setDescription(`Salut ${member}, ravi de te compter parmi nous !\n\n👉 Lis le <#1531831739431911486>\n Prends tes rôles dans <#1531832520016924793>`)
         .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
         .setFooter({ text: `Membre n°${member.guild.memberCount}` })
         .setTimestamp();
@@ -86,6 +172,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
     await channel.send({ content: `${member}`, embeds: [embed] }).catch(console.error);
 });
 
+// Au revoir
 client.on(Events.GuildMemberRemove, async (member) => {
     const channel = member.guild.channels.cache.get(CONFIG.goodbyeChannelId);
     if (!channel) return;
@@ -100,10 +187,10 @@ client.on(Events.GuildMemberRemove, async (member) => {
     await channel.send({ embeds: [embed] }).catch(console.error);
 });
 
-// --- INTERACTIONS & COMMANDES (TOUTES ASYNC) ---
+// --- INTERACTIONS & COMMANDES ---
 client.on(Events.InteractionCreate, async (interaction) => {
     try {
-        // 1. BOUTONS CANDIDATURE STAFF (Générés par le site web)
+        // 1. BOUTONS CANDIDATURE STAFF
         if (interaction.isButton() && (interaction.customId.startsWith('approve_staff_') || interaction.customId.startsWith('deny_staff_'))) {
             if (!interaction.member.roles.cache.has(CONFIG.staffRoleId)) {
                 return interaction.reply({ content: '❌ Permission insuffisante.', ephemeral: true });
@@ -178,7 +265,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         // 3. COMMANDE /BAN
         if (interaction.isChatInputCommand() && interaction.commandName === 'ban') {
             if (!interaction.member.permissions.has(PermissionFlagsBits.BanMembers)) {
-                return interaction.reply({ content: ' Permission insuffisante.', ephemeral: true });
+                return interaction.reply({ content: '❌ Permission insuffisante.', ephemeral: true });
             }
 
             const target = interaction.options.getUser('utilisateur');
@@ -188,7 +275,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             
             const embed = new EmbedBuilder()
                 .setColor('#dc2626')
-                .setTitle('🔨 Bannissement')
+                .setTitle(' Bannissement')
                 .setDescription(`${target} a été banni.`)
                 .addFields({ name: 'Raison', value: reason })
                 .setFooter({ text: `Par ${interaction.user.tag}` })
@@ -223,4 +310,5 @@ client.on(Events.InteractionCreate, async (interaction) => {
 process.on('unhandledRejection', error => console.error('Promesse rejetée:', error));
 process.on('uncaughtException', error => console.error('Exception non capturée:', error));
 
+// Connexion du bot
 client.login(process.env.TOKEN);
