@@ -173,37 +173,74 @@ client.once('clientReady', () => {
 async function registerCommands() {
     const commands = [
         { name: 'ban', description: 'Bannir un utilisateur', options: [
-            { name: 'utilisateur', type: 6, required: true }, { name: 'raison', type: 3, required: false }] },
+            { name: 'utilisateur', type: 6, required: true, description: 'L\'utilisateur à bannir' },
+            { name: 'raison', type: 3, required: false, description: 'Raison du ban' }] },
+
         { name: 'kick', description: 'Expulser un utilisateur', options: [
-            { name: 'utilisateur', type: 6, required: true }, { name: 'raison', type: 3, required: false }] },
+            { name: 'utilisateur', type: 6, required: true, description: 'L\'utilisateur à expulser' },
+            { name: 'raison', type: 3, required: false, description: 'Raison de l\'expulsion' }] },
+
         { name: 'mute', description: 'Mettre en timeout un utilisateur', options: [
-            { name: 'utilisateur', type: 6, required: true }, { name: 'duree_minutes', type: 4, required: true }, { name: 'raison', type: 3, required: false }] },
-        { name: 'unmute', description: 'Retirer le timeout', options: [ { name: 'utilisateur', type: 6, required: true }] },
+            { name: 'utilisateur', type: 6, required: true, description: 'L\'utilisateur à mute' },
+            { name: 'duree_minutes', type: 4, required: true, description: 'Durée en minutes' },
+            { name: 'raison', type: 3, required: false, description: 'Raison du mute' }] },
+
+        { name: 'unmute', description: 'Retirer le timeout d\'un utilisateur', options: [
+            { name: 'utilisateur', type: 6, required: true, description: 'L\'utilisateur à unmute' }] },
+
         { name: 'warn', description: 'Avertir un utilisateur', options: [
-            { name: 'utilisateur', type: 6, required: true }, { name: 'raison', type: 3, required: true }] },
-        { name: 'warns', description: 'Voir les avertissements', options: [ { name: 'utilisateur', type: 6, required: true }] },
-        { name: 'clear', description: 'Supprimer des messages', options: [ { name: 'nombre', type: 4, required: true }] },
-        { name: 'slowmode', description: 'Définir le slowmode', options: [ { name: 'secondes', type: 4, required: true }] },
-        { name: 'lock', description: 'Verrouiller le salon' },
-        { name: 'unlock', description: 'Déverrouiller le salon' },
-        { name: 'setup', description: 'Envoyer les embeds pros', options: [ { name: 'type', type: 3, required: true, choices: [
-            { name: '📜 Règlements', value: 'rules' }, { name: '🎭 Rôles & Notifs', value: 'roles' },
-            { name: '🎫 Support / Tickets', value: 'tickets' }, { name: '🛡️ Recrutement Staff', value: 'staff' },
-            { name: '🚀 TOUT', value: 'all' }] }] },
-        { name: 'setup-ticket', description: 'Panneau de ticket', options: [ { name: 'salon', type: 7, required: true, channel_types: [0] }] },
-        { name: 'role-menu', description: 'Menu de rôles par boutons', options: [
-            { name: 'role1', type: 8, required: true }, { name: 'role2', type: 8, required: false },
-            { name: 'role3', type: 8, required: false }, { name: 'role4', type: 8, required: false }, { name: 'role5', type: 8, required: false }] },
+            { name: 'utilisateur', type: 6, required: true, description: 'L\'utilisateur à avertir' },
+            { name: 'raison', type: 3, required: true, description: 'Raison de l\'avertissement' }] },
+
+        { name: 'warns', description: 'Voir les avertissements d\'un utilisateur', options: [
+            { name: 'utilisateur', type: 6, required: true, description: 'L\'utilisateur à consulter' }] },
+
+        { name: 'clear', description: 'Supprimer des messages', options: [
+            { name: 'nombre', type: 4, required: true, description: 'Nombre de messages (1-100)' }] },
+
+        { name: 'slowmode', description: 'Définir le slowmode du salon', options: [
+            { name: 'secondes', type: 4, required: true, description: 'Délai en secondes' }] },
+
+        { name: 'lock', description: 'Verrouiller le salon actuel' },
+
+        { name: 'unlock', description: 'Déverrouiller le salon actuel' },
+
+        { name: 'setup', description: 'Envoyer les embeds professionnels', options: [
+            { name: 'type', type: 3, required: true, description: 'Le type de setup à envoyer', choices: [
+                { name: '📜 Règlements', value: 'rules' },
+                { name: '🎭 Rôles & Notifs', value: 'roles' },
+                { name: '🎫 Support / Tickets', value: 'tickets' },
+                { name: '🛡️ Recrutement Staff', value: 'staff' },
+                { name: '🚀 TOUT', value: 'all' }] }] },
+
+        { name: 'setup-ticket', description: 'Envoyer le panneau de ticket', options: [
+            { name: 'salon', type: 7, required: true, description: 'Le salon où envoyer le panneau', channel_types: [0] }] },
+
+        { name: 'role-menu', description: 'Créer un menu de rôles par boutons', options: [
+            { name: 'role1', type: 8, required: true, description: 'Premier rôle (obligatoire)' },
+            { name: 'role2', type: 8, required: false, description: 'Deuxième rôle' },
+            { name: 'role3', type: 8, required: false, description: 'Troisième rôle' },
+            { name: 'role4', type: 8, required: false, description: 'Quatrième rôle' },
+            { name: 'role5', type: 8, required: false, description: 'Cinquième rôle' }] },
+
         { name: 'birthday', description: 'Gérer ton anniversaire', options: [
             { name: 'set', type: 1, description: 'Enregistrer ton anniversaire', options: [
-                { name: 'jour', type: 4, required: true }, { name: 'mois', type: 4, required: true }] },
+                { name: 'jour', type: 4, required: true, description: 'Jour (1-31)' },
+                { name: 'mois', type: 4, required: true, description: 'Mois (1-12)' }] },
             { name: 'remove', type: 1, description: 'Supprimer ton anniversaire' },
             { name: 'list', type: 1, description: 'Voir les anniversaires enregistrés' }] },
+
         { name: 'translate', description: 'Traduire un texte', options: [
-            { name: 'texte', type: 3, required: true }, { name: 'langue_cible', type: 3, required: true, description: 'ex: en, es, fr' }] }
+            { name: 'texte', type: 3, required: true, description: 'Le texte à traduire' },
+            { name: 'langue_cible', type: 3, required: true, description: 'Langue cible (ex: en, es, fr)' }] }
     ];
-    try { await client.application.commands.set(commands); console.log('✅ Commandes enregistrées !'); }
-    catch (e) { console.error('❌ Erreur commandes:', e); }
+
+    try {
+        await client.application.commands.set(commands);
+        console.log('✅ Commandes enregistrées !');
+    } catch (e) {
+        console.error('❌ Erreur commandes:', e);
+    }
 }
 
 // ============================================================
