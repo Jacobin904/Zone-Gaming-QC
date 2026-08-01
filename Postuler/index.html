@@ -31,6 +31,38 @@
         .logo-link img { height: 60px; width: 60px; border-radius: 50%; border: 2px solid var(--gold); box-shadow: 0 0 20px rgba(201, 169, 97, 0.4); object-fit: cover; }
         .logo-link h1 { font-size: 2rem; font-weight: 900; background: var(--grad-gold); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-family: 'Playfair Display', serif; }
 
+        /* Zone d'authentification */
+        .auth-box {
+            background: rgba(30, 40, 58, 0.6); border: 2px solid var(--border); border-radius: 20px;
+            padding: 50px 40px; text-align: center; max-width: 600px; width: 100%; backdrop-filter: blur(10px);
+        }
+        .auth-box h2 { font-size: 2rem; margin-bottom: 20px; background: var(--grad-gold); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .auth-box p { color: var(--taupe); margin-bottom: 30px; line-height: 1.6; }
+        .discord-btn {
+            display: inline-flex; align-items: center; gap: 12px; padding: 16px 32px; background: #5865F2;
+            color: white; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 1.1rem;
+            transition: all 0.3s; border: 2px solid transparent;
+        }
+        .discord-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(88, 101, 242, 0.4); border-color: #5865F2; }
+
+        /* Conteneur du formulaire */
+        .form-container { display: none; width: 100%; max-width: 700px; animation: fadeIn 0.5s ease; }
+        .form-container.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .user-info {
+            background: rgba(201, 169, 97, 0.1); border: 2px solid var(--gold); border-radius: 12px;
+            padding: 20px; margin-bottom: 30px; display: flex; align-items: center; gap: 20px;
+        }
+        .user-info img { width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--gold); }
+        .user-info div h3 { color: var(--gold); margin-bottom: 5px; }
+        .user-info div p { color: var(--taupe); font-size: 0.9rem; }
+        .logout-btn {
+            margin-left: auto; padding: 10px 20px; background: transparent; border: 2px solid var(--danger);
+            color: var(--danger); border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s;
+        }
+        .logout-btn:hover { background: var(--danger); color: white; }
+
         .tabs { display: flex; gap: 10px; margin-bottom: 40px; background: rgba(30, 40, 58, 0.5); padding: 8px; border-radius: 50px; border: 2px solid var(--border); flex-wrap: wrap; justify-content: center; }
         .tab { padding: 12px 25px; border-radius: 40px; background: transparent; border: none; color: var(--taupe); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 8px; font-family: 'Inter', sans-serif; }
         .tab:hover { color: var(--gold); }
@@ -38,7 +70,6 @@
 
         .tab-content { display: none; width: 100%; max-width: 700px; animation: fadeIn 0.5s ease; }
         .tab-content.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         .form-group { margin-bottom: 25px; }
         .form-label { display: block; margin-bottom: 10px; font-weight: 600; color: var(--gold); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
@@ -60,7 +91,6 @@
         .staff-info { margin-top: 40px; padding: 25px; background: rgba(201, 169, 97, 0.05); border: 2px dashed var(--gold); border-radius: 16px; text-align: center; max-width: 700px; width: 100%; }
         .staff-info h3 { color: var(--gold); margin-bottom: 10px; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; gap: 10px; }
         .staff-info p { color: var(--taupe); font-size: 0.9rem; line-height: 1.6; }
-
         .placeholder-content { text-align: center; padding: 60px 20px; }
         .placeholder-content i { font-size: 4rem; color: var(--gold); margin-bottom: 20px; }
         .placeholder-content h2 { font-family: 'Playfair Display', serif; font-size: 2rem; margin-bottom: 15px; background: var(--grad-gold); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
@@ -73,89 +103,110 @@
         <h1>Zone Gaming QC</h1>
     </a>
 
-    <div class="tabs">
-        <button class="tab active" data-tab="staff"><i class="fas fa-shield-halved"></i> Staff</button>
-        <button class="tab" data-tab="testeur"><i class="fas fa-bug"></i> Testeur (Beta)</button>
-        <button class="tab" data-tab="partenariat"><i class="fas fa-handshake"></i> Partenariat</button>
+    <!-- Zone d'authentification (visible si non connecté) -->
+    <div class="auth-box" id="authBox">
+        <h2><i class="fab fa-discord"></i> Authentification Requise</h2>
+        <p>Pour postuler au staff ou devenir testeur, vous devez vous connecter avec votre compte Discord. Cela nous permet de vérifier votre identité et d'éviter les candidatures frauduleuses.</p>
+        <a href="https://discord.com/oauth2/authorize?client_id=1533111086927315166&redirect_uri=https://jacobin904.github.io/Zone-Gaming-QC/Postuler/callback.html&response_type=code&scope=identify" class="discord-btn">
+            <i class="fab fa-discord"></i> Se connecter avec Discord
+        </a>
     </div>
 
-    <!-- ONGLET STAFF -->
-    <div class="tab-content active" id="tab-staff">
-        <form id="staffForm">
-            <div class="form-group">
-                <label class="form-label" for="staffPseudo"><i class="fab fa-discord"></i> Pseudo Discord</label>
-                <input type="text" class="form-input" id="staffPseudo" placeholder="Ex: jacobin904" required>
+    <!-- Conteneur du formulaire (visible si connecté) -->
+    <div class="form-container" id="formContainer">
+        <div class="user-info">
+            <img id="userAvatar" src="" alt="Avatar">
+            <div>
+                <h3 id="userName">Utilisateur</h3>
+                <p id="userId">ID: ---</p>
             </div>
-            <div class="form-group">
-                <label class="form-label" for="staffId"><i class="fas fa-id-card"></i> ID Discord</label>
-                <input type="text" class="form-input" id="staffId" placeholder="Ex: 1281784488854159421" required pattern="[0-9]{17,20}">
-                <p class="form-hint">Mode développeur activé > Clic droit sur ton profil > Copier l'ID.</p>
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="staffDisponibilite"><i class="fas fa-clock"></i> Disponibilité</label>
-                <select class="form-select" id="staffDisponibilite" required>
-                    <option value="">Sélectionne ta disponibilité...</option>
-                    <option value="Tous les jours (Matin)">Tous les jours (Matin)</option>
-                    <option value="Tous les jours (Après-midi)">Tous les jours (Après-midi)</option>
-                    <option value="Tous les jours (Soir)">Tous les jours (Soir)</option>
-                    <option value="Week-end uniquement">Week-end uniquement</option>
-                    <option value="Variable">Variable</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="staffExperience"><i class="fas fa-star"></i> Expérience</label>
-                <textarea class="form-textarea" id="staffExperience" placeholder="Décris tes expériences passées en modération ou gestion de communauté..." required></textarea>
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="staffMotivation"><i class="fas fa-heart"></i> Motivation</label>
-                <textarea class="form-textarea" id="staffMotivation" placeholder="Pourquoi veux-tu rejoindre l'équipe de Zone Gaming QC ?" required></textarea>
-            </div>
-            <button type="submit" class="btn-submit" id="staffSubmitBtn"><i class="fas fa-paper-plane"></i> Envoyer ma candidature Staff</button>
-            <div class="status-msg" id="staffStatusMsg"></div>
-        </form>
-    </div>
+            <button class="logout-btn" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Déconnexion
+            </button>
+        </div>
 
-    <!-- ONGLET TESTEUR (BETA) -->
-    <div class="tab-content" id="tab-testeur">
-        <form id="testeurForm">
-            <div class="form-group">
-                <label class="form-label" for="testeurPseudo"><i class="fab fa-discord"></i> Pseudo Discord</label>
-                <input type="text" class="form-input" id="testeurPseudo" placeholder="Ex: jacobin904" required>
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="testeurId"><i class="fas fa-id-card"></i> ID Discord</label>
-                <input type="text" class="form-input" id="testeurId" placeholder="Ex: 1281784488854159421" required pattern="[0-9]{17,20}">
-                <p class="form-hint">Mode développeur activé > Clic droit sur ton profil > Copier l'ID.</p>
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="testeurDisponibilite"><i class="fas fa-clock"></i> Disponibilité pour les tests</label>
-                <select class="form-select" id="testeurDisponibilite" required>
-                    <option value="">Sélectionne ta disponibilité...</option>
-                    <option value="Tous les jours">Tous les jours</option>
-                    <option value="Soirées et Week-ends">Soirées et Week-ends</option>
-                    <option value="Week-end uniquement">Week-end uniquement</option>
-                    <option value="Variable">Variable</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="testeurExperience"><i class="fas fa-bug"></i> Expérience en test / signalement de bugs</label>
-                <textarea class="form-textarea" id="testeurExperience" placeholder="As-tu déjà participé à des bêta-tests ? Sais-tu rédiger un rapport de bug clair ?" required></textarea>
-            </div>
-            <div class="form-group">
-                <label class="form-label" for="testeurMotivation"><i class="fas fa-gamepad"></i> Motivation</label>
-                <textarea class="form-textarea" id="testeurMotivation" placeholder="Pourquoi veux-tu devenir testeur pour Zone Gaming QC ?" required></textarea>
-            </div>
-            <button type="submit" class="btn-submit" id="testeurSubmitBtn"><i class="fas fa-paper-plane"></i> Postuler comme Testeur</button>
-            <div class="status-msg" id="testeurStatusMsg"></div>
-        </form>
-    </div>
+        <div class="tabs">
+            <button class="tab active" data-tab="staff"><i class="fas fa-shield-halved"></i> Staff</button>
+            <button class="tab" data-tab="testeur"><i class="fas fa-bug"></i> Testeur (Beta)</button>
+            <button class="tab" data-tab="partenariat"><i class="fas fa-handshake"></i> Partenariat</button>
+        </div>
 
-    <!-- ONGLET PARTENARIAT -->
-    <div class="tab-content" id="tab-partenariat">
-        <div class="placeholder-content">
-            <i class="fas fa-handshake"></i>
-            <h2>Candidature Partenariat</h2>
-            <p>Cette section sera disponible prochainement. Tu pourras alors proposer ton serveur ou projet pour collaborer avec Zone Gaming QC.</p>
+        <!-- ONGLET STAFF -->
+        <div class="tab-content active" id="tab-staff">
+            <form id="staffForm">
+                <div class="form-group">
+                    <label class="form-label"><i class="fab fa-discord"></i> Pseudo Discord</label>
+                    <input type="text" class="form-input" id="staffPseudo" readonly style="opacity: 0.7; cursor: not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-id-card"></i> ID Discord</label>
+                    <input type="text" class="form-input" id="staffId" readonly style="opacity: 0.7; cursor: not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-clock"></i> Disponibilité</label>
+                    <select class="form-select" id="staffDisponibilite" required>
+                        <option value="">Sélectionne ta disponibilité...</option>
+                        <option value="Tous les jours (Matin)">Tous les jours (Matin)</option>
+                        <option value="Tous les jours (Après-midi)">Tous les jours (Après-midi)</option>
+                        <option value="Tous les jours (Soir)">Tous les jours (Soir)</option>
+                        <option value="Week-end uniquement">Week-end uniquement</option>
+                        <option value="Variable">Variable</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-star"></i> Expérience</label>
+                    <textarea class="form-textarea" id="staffExperience" placeholder="Décris tes expériences passées en modération ou gestion de communauté..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-heart"></i> Motivation</label>
+                    <textarea class="form-textarea" id="staffMotivation" placeholder="Pourquoi veux-tu rejoindre l'équipe de Zone Gaming QC ?" required></textarea>
+                </div>
+                <button type="submit" class="btn-submit" id="staffSubmitBtn"><i class="fas fa-paper-plane"></i> Envoyer ma candidature Staff</button>
+                <div class="status-msg" id="staffStatusMsg"></div>
+            </form>
+        </div>
+
+        <!-- ONGLET TESTEUR (BETA) -->
+        <div class="tab-content" id="tab-testeur">
+            <form id="testeurForm">
+                <div class="form-group">
+                    <label class="form-label"><i class="fab fa-discord"></i> Pseudo Discord</label>
+                    <input type="text" class="form-input" id="testeurPseudo" readonly style="opacity: 0.7; cursor: not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-id-card"></i> ID Discord</label>
+                    <input type="text" class="form-input" id="testeurId" readonly style="opacity: 0.7; cursor: not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-clock"></i> Disponibilité pour les tests</label>
+                    <select class="form-select" id="testeurDisponibilite" required>
+                        <option value="">Sélectionne ta disponibilité...</option>
+                        <option value="Tous les jours">Tous les jours</option>
+                        <option value="Soirées et Week-ends">Soirées et Week-ends</option>
+                        <option value="Week-end uniquement">Week-end uniquement</option>
+                        <option value="Variable">Variable</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-bug"></i> Expérience en test / signalement de bugs</label>
+                    <textarea class="form-textarea" id="testeurExperience" placeholder="As-tu déjà participé à des bêta-tests ? Sais-tu rédiger un rapport de bug clair ?" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-gamepad"></i> Motivation</label>
+                    <textarea class="form-textarea" id="testeurMotivation" placeholder="Pourquoi veux-tu devenir testeur pour Zone Gaming QC ?" required></textarea>
+                </div>
+                <button type="submit" class="btn-submit" id="testeurSubmitBtn"><i class="fas fa-paper-plane"></i> Postuler comme Testeur</button>
+                <div class="status-msg" id="testeurStatusMsg"></div>
+            </form>
+        </div>
+
+        <!-- ONGLET PARTENARIAT -->
+        <div class="tab-content" id="tab-partenariat">
+            <div class="placeholder-content">
+                <i class="fas fa-handshake"></i>
+                <h2>Candidature Partenariat</h2>
+                <p>Cette section sera disponible prochainement. Tu pourras alors proposer ton serveur ou projet pour collaborer avec Zone Gaming QC.</p>
+            </div>
         </div>
     </div>
 
@@ -165,7 +216,42 @@
     </div>
 
     <script>
-        // Gestion des onglets
+        // 1. Vérifier l'authentification au chargement
+        window.addEventListener('load', function() {
+            const auth = localStorage.getItem('discordAuth');
+            if (auth) {
+                const userData = JSON.parse(auth);
+                if (userData.authenticated) {
+                    showForm(userData);
+                }
+            }
+        });
+
+        function showForm(user) {
+            document.getElementById('authBox').style.display = 'none';
+            document.getElementById('formContainer').classList.add('active');
+            
+            const discriminator = user.discriminator !== '0' ? '#' + user.discriminator : '';
+            document.getElementById('userName').textContent = user.username + discriminator;
+            document.getElementById('userId').textContent = 'ID: ' + user.id;
+            document.getElementById('userAvatar').src = user.avatar ? 
+                'https://cdn.discordapp.com/avatars/' + user.id + '/' + user.avatar + '.png' : 
+                'https://cdn.discordapp.com/embed/avatars/0.png';
+
+            // Pré-remplir les champs ID et Pseudo des deux formulaires (lecture seule)
+            const pseudo = user.username + discriminator;
+            document.getElementById('staffPseudo').value = pseudo;
+            document.getElementById('staffId').value = user.id;
+            document.getElementById('testeurPseudo').value = pseudo;
+            document.getElementById('testeurId').value = user.id;
+        }
+
+        function logout() {
+            localStorage.removeItem('discordAuth');
+            window.location.reload();
+        }
+
+        // 2. Gestion des onglets
         document.querySelectorAll('.tab').forEach(function(tab) {
             tab.addEventListener('click', function() {
                 document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
@@ -175,9 +261,9 @@
             });
         });
 
+        // 3. Envoi des formulaires
         var BOT_API_URL = 'https://zone-gaming-qc-bot.onrender.com/api/candidature';
 
-        // Fonction générique d'envoi
         function submitForm(formId, btnId, statusId, type) {
             document.getElementById(formId).addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -213,6 +299,12 @@
                     status.innerHTML = '<i class="fas fa-check-circle"></i> Candidature ' + type + ' envoyée avec succès !';
                     status.style.display = 'block';
                     document.getElementById(formId).reset();
+                    
+                    // Ré-afficher les infos user après le reset du formulaire
+                    const auth = JSON.parse(localStorage.getItem('discordAuth'));
+                    const disc = auth.discriminator !== '0' ? '#' + auth.discriminator : '';
+                    document.getElementById(prefix + 'Pseudo').value = auth.username + disc;
+                    document.getElementById(prefix + 'Id').value = auth.id;
                 })
                 .catch(function(err) {
                     console.error('Erreur envoi:', err);
@@ -227,7 +319,6 @@
             });
         }
 
-        // Initialiser les deux formulaires
         submitForm('staffForm', 'staffSubmitBtn', 'staffStatusMsg', 'Staff');
         submitForm('testeurForm', 'testeurSubmitBtn', 'testeurStatusMsg', 'Testeur (Beta)');
     </script>
