@@ -98,83 +98,84 @@ client.on(Events.GuildMemberRemove, async (member) => {
     await channel.send({ embeds: [embed] }).catch(console.error);
 });
 
-// --- INTERACTIONS & COMMANDES ---
-client.on(Events.InteractionCreate, async (interaction) => {
-    // BOUTONS CANDIDATURE STAFF
-    if (interaction.isButton() && interaction.customId.startsWith('candidature_')) {
-        if (!interaction.member.roles.cache.has(CONFIG.staffRoleId)) {
-            return interaction.reply({ content: '❌ Permission insuffisante.', ephemeral: true });
-        }
+// Dans client.on(Events.InteractionCreate, ...)
 
-        const action = interaction.customId.split('_')[1];
-        const modal = new ModalBuilder()
-            .setCustomId(`response_modal_${action}`)
-            .setTitle(action === 'approve' ? '✅ Approuver' : '❌ Refuser');
-
-        const input = new TextInputBuilder()
-            .setCustomId('reason')
-            .setLabel('Raison / Commentaire')
-            .setStyle(TextInputStyle.Paragraph)
-            .setRequired(true);
-
-        modal.addComponents(new ActionRowBuilder().addComponents(input));
-        await interaction.showModal(modal);
+// GESTION DES BOUTONS DE CANDIDATURE (Générés par le site web)
+if (interaction.isButton() && (interaction.customId.startsWith('approve_staff_') || interaction.customId.startsWith('deny_staff_'))) {
+    if (!interaction.member.roles.cache.has(CONFIG.staffRoleId)) {
+        return interaction.reply({ content: '❌ Permission insuffisante.', ephemeral: true });
     }
 
-    // MODAL RÉPONSE STAFF
-    if (interaction.isModalSubmit() && interaction.customId.startsWith('response_modal_')) {
-        const action = interaction.customId.split('_')[2];
-        const reason = interaction.fields.getTextInputValue('reason');
-        
-        // ⚠️ IMPORTANT : Stocke l'ID du candidat dans le customId du bouton original
-        // Exemple de bouton : new ButtonBuilder().setCustomId(`candidature_approve_${userId}`)
-        const candidateId = interaction.customId.split('_')[3]; 
-        
-        const color = action === 'approve' ? 0x059669 : 0xdc2626;
-        const title = action === 'approve' ? 'Candidature Approuvée !' : 'Candidature Refusée';
-        
-        const responseEmbed = new EmbedBuilder()
-            .setColor(color)
-            .setTitle(title)
-            .setDescription(`Ta candidature pour le staff de **Zone Gaming QC** a été traitée.`)
-            .addFields(
-                { name: 'Décision', value: action === 'approve' ? '✅ Acceptée' : '❌ Refusée', inline: true },
-                { name: 'Traitée par', value: `${interaction.user}`, inline: true },
-                { name: 'Raison', value: reason }
-            )
-            .setTimestamp();
+    const isApprove = interaction.customId.startsWith('approve_staff_');
+    const candidateId = interaction.customId.split('_')[2]; // Récupère l'ID stocké dans le custom_id
 
-        try {
-            // Envoi au webhook de réponse
-            await fetch(process.env.WEBHOOK_REPONSE, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    content: candidateId ? `<@${candidateId}>` : undefined,
-                    embeds: [responseEmbed.toJSON()]
-                })
-            });
-            
-            await interaction.reply({ content: '✅ Réponse envoyée au candidat.', ephemeral: true });
-            
-            // Log interne
-            const logChannel = interaction.guild.channels.cache.get(CONFIG.logsChannelId);
-            if (logChannel) {
-                const logEmbed = new EmbedBuilder()
-                    .setColor(color)
-                    .setTitle('📬 Traitement Candidature')
-                    .addFields(
-                        { name: 'Action', value: action.toUpperCase(), inline: true },
-                        { name: 'Staff', value: `${interaction.user}`, inline: true },
-                        { name: 'Raison', value: reason }
-                    );
-                await logChannel.send({ embeds: [logEmbed] });
-            }
-        } catch (err) {
-            console.error('Erreur webhook réponse:', err);
-            await interaction.reply({ content: '❌ Erreur lors de l\'envoi.', ephemeral: true });
+    const modal = new ModalBuilder()
+        .setCustomId(`response_modal_${isApprove ? 'approve' : 'deny'}_${candidateId}`)
+        .setTitle(isApprove ? '✅ Approuver la candidature' : '❌ Refuser la candidature');
+
+    const input = new TextInputBuilder()
+        .setCustomId('reason')
+        .setLabel('Raison / Commentaire')
+        .setStyle(TextInputStyle.Paragraph)
+        .setRequired(true);
+
+    modal.addComponents(new ActionRowBuilder().addComponents(input));
+    await interaction.showModal(modal);
+}
+
+// TRAITEMENT DE LA RÉPONSE DU STAFF (Modal)
+if (interaction.isModalSubmit() && interaction.customId.startsWith('response_modal_')) {
+    const parts = interaction.customId.split('_');
+    const action = parts[2]; // approve ou deny
+    const candidateId = parts[3]; // ID du candidat
+    const reason = interaction.fields.getTextInputValue('reason');
+    
+    const color = action === 'approve' ? 0x059669 : 0xdc2626;
+    const title = action === 'approve' ? 'Candidature Approuvée !' : 'Candidature Refusée';
+    
+    const responseEmbed = new EmbedBuilder()
+        .setColor(color)
+        .setTitle(title)
+        .setDescription(`Ta candidature pour le staff de **Zone Gaming QC** a été traitée.`)
+        .addFields(
+            { name: 'Décision', value: action === 'approve' ? '✅ Acceptée' : '❌ Refusée', inline: true },
+            { name: 'Traitée par', value: `${interaction.user}`, inline: true },
+            { name: 'Raison', value: reason }
+        )
+        .setTimestamp();
+
+    try {
+        // Envoi au Webhook de Réponse avec le ping du candidat
+        await fetch(process.env.WEBHOOK_REPONSE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                content: `<@${candidateId}>`,
+                embeds: [responseEmbed.toJSON()]
+            })
+        });
+        
+        await interaction.reply({ content: '✅ Réponse envoyée avec succès au candidat.', ephemeral: true });
+        
+        // Log interne
+        const logChannel = interaction.guild.channels.cache.get(CONFIG.logsChannelId);
+        if (logChannel) {
+            const logEmbed = new EmbedBuilder()
+                .setColor(color)
+                .setTitle('📬 Traitement Candidature')
+                .addFields(
+                    { name: 'Action', value: action.toUpperCase(), inline: true },
+                    { name: 'Staff', value: `${interaction.user}`, inline: true },
+                    { name: 'Candidat ID', value: `\`${candidateId}\``, inline: true },
+                    { name: 'Raison', value: reason }
+                );
+            await logChannel.send({ embeds: [logEmbed] });
         }
+    } catch (err) {
+        console.error('Erreur webhook réponse:', err);
+        await interaction.reply({ content: '❌ Erreur lors de l\'envoi de la réponse.', ephemeral: true });
     }
+}
 
     // COMMANDE /BAN
     if (interaction.isChatInputCommand() && interaction.commandName === 'ban') {
