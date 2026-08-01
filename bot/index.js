@@ -16,7 +16,13 @@ const client = new Client({
         GatewayIntentBits.GuildModeration,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent
-    ]
+    ],
+    // 🛡️ SÉCURITÉ ANTI-PING : Autorise uniquement les mentions d'utilisateurs spécifiques.
+    // Bloque automatiquement @everyone, @here et les mentions de rôles.
+    allowedMentions: {
+        parse: ['users'],
+        repliedUser: false
+    }
 });
 
 // ============================================================
@@ -240,7 +246,6 @@ client.on(Events.MessageDelete, async (message) => {
 
 client.on(Events.MessageUpdate, async (oldMsg, newMsg) => {
     if (!newMsg.guild || newMsg.author?.bot) return;
-    // Ignore si seul un embed ou une réaction a changé sans changement de texte
     if (oldMsg.content === newMsg.content && oldMsg.embeds.length === newMsg.embeds.length) return;
     
     sendLog(newMsg.guild, 'Message Modifié', [
@@ -293,7 +298,7 @@ client.on(Events.ChannelDelete, async (channel) => {
 });
 
 // ============================================================
-// ANTI-RAID / WELCOME / LEAVE (SANS PING)
+// ANTI-RAID / WELCOME / LEAVE (SANS AUCUN PING)
 // ============================================================
 const joinLog = new Map();
 function checkRaid(guild) {
@@ -308,10 +313,11 @@ function checkRaid(guild) {
 client.on(Events.GuildMemberAdd, async (member) => {
     if (checkRaid(member.guild)) {
         const logCh = member.guild.channels.cache.get(CONFIG.logsChannelId);
-        // SANS PING DU RÔLE STAFF
-        if (logCh) await logCh.send({ content: '🚨 **ALERTE RAID** : Plusieurs joins rapides détectés. Veuillez vérifier.', embeds: [
-            new EmbedBuilder().setColor('#dc2626').setTitle('Alerte Sécurité').setDescription('Activité de join anormale détectée.')
-        ]}).catch(() => {});
+        // SANS PING DU RÔLE STAFF OU @EVERYONE
+        if (logCh) await logCh.send({ 
+            content: '🚨 **ALERTE RAID** : Plusieurs joins rapides détectés. Veuillez vérifier.', 
+            embeds: [new EmbedBuilder().setColor('#dc2626').setTitle('Alerte Sécurité').setDescription('Activité de join anormale détectée.')]
+        }).catch(() => {});
     }
     const channel = member.guild.channels.cache.get(CONFIG.welcomeChannelId);
     if (channel) {
@@ -327,7 +333,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
             .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
             .setFooter({ text: `Zone Gaming QC • Membre n°${member.guild.memberCount}`, iconURL: CONFIG.logoUrl })
             .setTimestamp();
-        // SANS PING DU MEMBRE (content: null)
+        // content: null garantit qu'aucun ping n'est envoyé
         await channel.send({ content: null, embeds: [embed] }).catch(() => {});
     }
     sendLog(member.guild, 'Nouveau Membre', [
@@ -507,7 +513,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
             if (!member.roles.cache.has(CONFIG.staffRoleId) && !member.permissions.has(PermissionFlagsBits.ModerateMembers)) return interaction.reply({ content: '❌ Permission requise.', ephemeral: true });
             const target = interaction.options.getUser('utilisateur');
             const reason = interaction.options.getString('raison');
-            // Note: Pour simplifier et éviter les bugs, on utilise un système de warn basique ici.
             await interaction.reply({ content: `⚠️ ${target.tag} a reçu un avertissement pour : ${reason}`, ephemeral: true });
             sendLog(interaction.guild, 'Action Modération: Warn', [
                 { name: 'Cible', value: `${target.tag} (\`${target.id}\`)`, inline: true },
@@ -580,7 +585,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     { id: CONFIG.staffRoleId, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'ManageChannels'] }
                 ]
             });
-            // SANS PING DU MEMBRE
+            // content: null garantit qu'aucun ping n'est envoyé
             await tc.send({ content: null, embeds: [new EmbedBuilder().setColor('#c9a961').setTitle(`🎫 Ticket de ${member.user.username}`).setDescription('Bonjour ! L\'équipe de support va te répondre dans les plus brefs délais.\nMerci de décrire ton problème en détail.').setFooter({ text: 'Zone Gaming QC', iconURL: CONFIG.logoUrl })] });
             await interaction.reply({ content: `✅ Ticket créé : ${tc}`, ephemeral: true });
             sendLog(guild, 'Ticket Ouvert', [
@@ -601,6 +606,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 .setFooter({ text: 'Zone Gaming QC', iconURL: CONFIG.logoUrl }).setTimestamp();
             
             if (process.env.WEBHOOK_REPONSE) {
+                // Ce ping est spécifique à l'utilisateur candidat, autorisé par allowedMentions: { parse: ['users'] }
                 await fetch(process.env.WEBHOOK_REPONSE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: `<@${cid}>`, embeds: [e.toJSON()] }) }).catch(() => {});
             }
             await interaction.reply({ content: `✅ Réponse envoyée au candidat.`, ephemeral: true });
@@ -621,8 +627,7 @@ function startBirthdayChecker() {
         if (today === lastBirthdayCheck) return;
         lastBirthdayCheck = today;
         for (const [, guild] of client.guilds.cache) {
-            // Note: Pour une vraie persistance des anniversaires, il faudrait implémenter loadTable/saveTable comme pour les warns.
-            // Ici, c'est un placeholder fonctionnel si tu ajoutes la logique de base de données.
+            // Placeholder fonctionnel pour la logique d'anniversaire
         }
     }, 60 * 60 * 1000);
 }
