@@ -127,6 +127,68 @@ server.listen(process.env.PORT || 3000, () => {
     console.log(`🌐 Health check et API actifs sur le port ${process.env.PORT || 3000}`);
 });
 
+// ✅ ENDPOINT AUTH DISCORD (à ajouter dans server.on('request'))
+if (req.url === '/api/auth/discord' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    
+    req.on('end', async () => {
+        try {
+            const { code } = JSON.parse(body);
+            
+            // Échanger le code contre un token
+            const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    client_id: '1533111086927315166',
+                    client_secret: process.env.DISCORD_CLIENT_SECRET, // À ajouter dans les variables Render
+                    grant_type: 'authorization_code',
+                    code: code,
+                    redirect_uri: 'https://jacobin904.github.io/Zone-Gaming-QC/Postuler/callback.html'
+                })
+            });
+            
+            const tokenData = await tokenResponse.json();
+            
+            if (!tokenResponse.ok) {
+                throw new Error(tokenData.error_description || 'Erreur OAuth2');
+            }
+            
+            // Récupérer les infos de l'utilisateur
+            const userResponse = await fetch('https://discord.com/api/users/@me', {
+                headers: {
+                    'Authorization': `Bearer ${tokenData.access_token}`
+                }
+            });
+            
+            const userData = await userResponse.json();
+            
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+                success: true,
+                user: {
+                    id: userData.id,
+                    username: userData.username,
+                    discriminator: userData.discriminator,
+                    avatar: userData.avatar
+                }
+            }));
+            
+        } catch (error) {
+            console.error('Erreur auth Discord:', error);
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+                success: false,
+                message: error.message
+            }));
+        }
+    });
+    return;
+}
+
 // --- ÉVÉNEMENTS DISCORD ---
 client.once('clientReady', () => {
     console.log(`✅ Bot connecté : ${client.user.tag}`);
