@@ -26,14 +26,19 @@
             --gold:#c9a961;--gold-light:#d4b978;--gold-dark:#a89050;
             --cream:#f5f3ed;--cream-2:#e8e4d9;--taupe:#8b8378;
             --border:rgba(201,169,97,.2);--border-primary:rgba(30,58,95,.4);
+            --grad-argent:linear-gradient(135deg,#f5f3ed 0%,#e8e4d9 45%,#d4c9b8 100%);
+            --grad-primary:linear-gradient(135deg,#1e3a5f 0%,#152a45 100%);
             --grad-gold:linear-gradient(135deg,#c9a961 0%,#d4b978 50%,#c9a961 100%);
+            --danger: #dc2626; --warning: #d97706; --success: #059669;
         }
         *{margin:0;padding:0;box-sizing:border-box}
         html{scroll-behavior:smooth}
         body{font-family:'Inter',sans-serif;background:var(--nuit-0);color:var(--cream-2);line-height:1.7;overflow-x:hidden}
+        :focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:4px}
         ::-webkit-scrollbar{width:8px}
         ::-webkit-scrollbar-track{background:var(--nuit-0)}
         ::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--gold),var(--gold-dark));border-radius:4px}
+        ::-webkit-scrollbar-thumb:hover{background:var(--gold)}
         .grain{position:fixed;inset:0;z-index:9997;pointer-events:none;opacity:.035;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:128px 128px}
         .glow-follow{position:fixed;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(201,169,97,.08) 0%,transparent 70%);pointer-events:none;z-index:-1;transform:translate(-50%,-50%)}
         .mesh-bg{position:fixed;inset:0;z-index:-2;overflow:hidden}
@@ -127,7 +132,6 @@
         .rule-card h4 i{color:var(--gold)}
         .rule-card p{color:var(--taupe);font-size:1.05rem;line-height:1.9;position:relative;z-index:1}
         
-        /* Section Équipe - Centrée avec 2 membres */
         .team-section{background:linear-gradient(180deg,var(--nuit-1),var(--nuit-0));border-top:2px solid var(--border);border-bottom:2px solid var(--border)}
         .team-grid-centered{display:grid;grid-template-columns:repeat(2, 1fr);gap:30px;max-width:900px;margin:0 auto;justify-content:center}
         .team-card{background:rgba(30,40,58,.5);border-radius:28px;padding:35px 25px;text-align:center;border:2px solid var(--border);backdrop-filter:blur(15px);transition:all .5s;position:relative;overflow:hidden;height:100%;display:flex;flex-direction:column}
@@ -141,7 +145,6 @@
         .team-role{display:inline-block;padding:5px 15px;border-radius:20px;font-size:.85rem;font-weight:700;margin-bottom:15px;background:var(--grad-gold);color:var(--nuit-1)}
         .team-card p{color:var(--taupe);line-height:1.7;font-size:.95rem;flex-grow:1}
         
-        /* Section Actions (Recrutement + Partenariat) */
         .actions-section{padding-top:0}
         .actions-grid{display:grid;grid-template-columns:repeat(2, 1fr);gap:30px;max-width:900px;margin:0 auto;justify-content:center}
         .action-card{background:linear-gradient(135deg,rgba(201,169,97,0.05),rgba(30,58,95,0.2));border:2px dashed var(--gold);display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border-radius:28px;padding:35px 25px;transition:all .5s;position:relative;overflow:hidden;height:100%}
@@ -295,7 +298,6 @@
         </div>
     </section>
     
-    <!-- SECTION EQUIPE - 2 MEMBRES CENTRES -->
     <section class="team-section" id="equipe">
         <div class="container">
             <div class="section-header reveal"><h2>L Equipe de Direction</h2><p>Une equipe passionnee et experimentee pour faire grandir Zone Gaming QC.</p></div>
@@ -311,7 +313,7 @@
                 </div>
                 <div class="team-card tilt">
                     <div class="team-img-wrap">
-                        <img src="https://cdn.discordapp.com/avatars/1281784488854159421/70fadd7039625c055530b88dcf8a502b.webp?size=1024" alt="Jacobin Babouain" class="team-img">
+                        <img src="https://cdn.discordapp.com/avatars/1281784488854159421/608fbe0e316e417b5e83539ef8555255.webp?size=1024" alt="Jacobin Babouain" class="team-img">
                     </div>
                     <h3>Jacobin Babouain</h3>
                     <span class="team-role">Developpeur Serveur</span>
@@ -322,30 +324,27 @@
         </div>
     </section>
 
-    <!-- SECTION ACTIONS SEPAREE - RECRUTEMENT ET PARTENARIAT -->
-<!-- SECTION ACTIONS SEPAREE - RECRUTEMENT ET PARTENARIAT -->
-<section class="actions-section" id="actions">
-    <div class="container">
-        <div class="section-header reveal"><h2>Rejoins-nous</h2><p>Des opportunités pour contribuer à la croissance de Zone Gaming QC.</p></div>
-        <div class="actions-grid stagger">
-            <div class="action-card tilt">
-                <div class="action-icon"><i class="fas fa-user-plus"></i></div>
-                <h3>Rejoins l equipe</h3>
-                <span class="team-role">Recrutement Ouvert</span>
-                <p>Tu es motive, mature et passionne ? Nous cherchons regulierement de nouveaux talents pour renforcer notre equipe de moderation et d animation.</p>
-                <!-- REDIRECTION VERS LA PAGE POSTULER -->
-                <a href="/Postuler/" class="action-btn" target="_blank"><i class="fas fa-arrow-right"></i> Voir les candidatures</a>
-            </div>
-            <div class="action-card tilt">
-                <div class="action-icon"><i class="fas fa-handshake"></i></div>
-                <h3>Devenir Partenaire</h3>
-                <span class="team-role">Collaboration</span>
-                <p>Tu as un serveur ou un projet complementaire ? Propose-nous un partenariat pour grandir ensemble et offrir plus de valeur a nos communautes.</p>
-                <a href="https://discord.gg/d8g2eztfbM" class="action-btn" target="_blank"><i class="fas fa-envelope"></i> Contacter le staff</a>
+    <section class="actions-section" id="actions">
+        <div class="container">
+            <div class="section-header reveal"><h2>Rejoins-nous</h2><p>Des opportunités pour contribuer à la croissance de Zone Gaming QC.</p></div>
+            <div class="actions-grid stagger">
+                <div class="action-card tilt">
+                    <div class="action-icon"><i class="fas fa-user-plus"></i></div>
+                    <h3>Rejoins l equipe</h3>
+                    <span class="team-role">Recrutement Ouvert</span>
+                    <p>Tu es motive, mature et passionne ? Nous cherchons regulierement de nouveaux talents pour renforcer notre equipe de moderation et d animation.</p>
+                    <a href="https://jacobin904.github.io/Zone-Gaming-QC/Postuler/" class="action-btn" target="_blank"><i class="fas fa-arrow-right"></i> Voir les candidatures</a>
+                </div>
+                <div class="action-card tilt">
+                    <div class="action-icon"><i class="fas fa-handshake"></i></div>
+                    <h3>Devenir Partenaire</h3>
+                    <span class="team-role">Collaboration</span>
+                    <p>Tu as un serveur ou un projet complementaire ? Propose-nous un partenariat pour grandir ensemble et offrir plus de valeur a nos communautes.</p>
+                    <a href="https://discord.gg/d8g2eztfbM" class="action-btn" target="_blank"><i class="fas fa-envelope"></i> Contacter le staff</a>
+                </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 
     <section id="faq">
         <div class="container">
@@ -404,7 +403,7 @@
                 <h4>Liens Utiles</h4>
                 <ul>
                     <li><a href="https://discord.gg/d8g2eztfbM" target="_blank" rel="noopener noreferrer"><i class="fab fa-discord"></i> Invitation Discord</a></li>
-                    <li><a href="#actions"><i class="fas fa-user-plus"></i> Recrutement Staff</a></li>
+                    <li><a href="https://jacobin904.github.io/Zone-Gaming-QC/Postuler/"><i class="fas fa-user-plus"></i> Recrutement Staff</a></li>
                     <li><a href="#reglements"><i class="fas fa-gavel"></i> Reglement Complet</a></li>
                 </ul>
             </div>
@@ -412,7 +411,7 @@
                 <h4>Conception</h4>
                 <p>Site web concu et developpe avec passion pour la communaute Zone Gaming QC.</p>
                 <div style="display:flex;align-items:center;gap:15px;margin-top:25px">
-                    <img src="https://cdn.discordapp.com/avatars/1281784488854159421/70fadd7039625c055530b88dcf8a502b.webp?size=1024" alt="Jacobin Babouain" style="width:50px;height:50px;border-radius:50%;border:2px solid var(--gold)">
+                    <img src="https://cdn.discordapp.com/avatars/1281784488854159421/608fbe0e316e417b5e83539ef8555255.webp?size=1024" alt="Jacobin Babouain" style="width:50px;height:50px;border-radius:50%;border:2px solid var(--gold)">
                     <div>
                         <p style="margin:0;font-weight:700;color:var(--cream)">Jacobin Babouain</p>
                         <p style="margin:0;font-size:.9rem;color:var(--taupe)">Developpeur Web et Co-Fondateur</p>
