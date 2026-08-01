@@ -1,10 +1,11 @@
 const { 
     Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, 
     ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, 
-    TextInputStyle, PermissionFlagsBits, Events, ChannelType, PermissionOverwrites
+    TextInputStyle, PermissionFlagsBits, Events, ChannelType
 } = require('discord.js');
 const http = require('http');
 
+// ✅ Vérification des variables d'environnement
 if (!process.env.TOKEN || !process.env.CLIENT_ID || !process.env.GUILD_ID || !process.env.DISCORD_CLIENT_SECRET) {
     console.error('❌ Variables manquantes sur Render !');
     process.exit(1);
@@ -19,21 +20,26 @@ const client = new Client({
     ]
 });
 
+// ============================================================
+// CONFIGURATION (IDs vérifiés sur ton serveur)
+// ============================================================
 const CONFIG = {
-    welcomeChannelId: '1531832075454255216',
-    goodbyeChannelId: '1531832012493688872',
-    birthdayChannelId: '1531841059456548994',
-    staffRoleId: '1531835193395122186',
-    logsChannelId: '1531829572914511955',
-    ticketCategoryId: '1531833907438289018',
-    // Liens/domaines autorisés par l'anti-pub (en plus des membres staff)
+    welcomeChannelId: '1531832075454255216',     // 🎉・arrivée
+    goodbyeChannelId: '1531833131823267901',     // 💬・général (fallback)
+    birthdayChannelId: '1531833131823267901',    // 💬・général (fallback)
+    staffRoleId: '1531835193395122186',          // Staff
+    logsChannelId: '1531829572914511955',        // 📊・logs-modération
+    ticketCategoryId: '1531833907438289018',     // 🎫 | CONTACT & SUPPORT
+    candidatureChannelId: '1533106862386446468', // candidatures-staff
+    reglementsChannelId: '1531831739431911486',  // 📜・règlements
+    generalChannelId: '1531833131823267901',     // 💬・général
     linkWhitelist: ['discord.gg/d8g2eztfbM', 'jacobin904.github.io']
 };
 
 // ============================================================
-// BASE DE DONNÉES DISCORD (persistance gratuite via un salon)
+// BASE DE DONNÉES DISCORD (persistance via salon privé)
 // ============================================================
-const dbCache = new Map(); // clé: "guildId:table" -> objet
+const dbCache = new Map();
 
 async function getDbChannel(guild) {
     let ch = guild.channels.cache.find(c => c.name === 'bot-database');
@@ -48,7 +54,6 @@ async function getDbChannel(guild) {
             ],
             reason: 'Stockage interne du bot Zone Gaming QC'
         });
-        // donner aussi la vue aux admins
         const adminRole = guild.roles.cache.find(r => r.permissions.has(PermissionFlagsBits.Administrator));
         if (adminRole) await ch.permissionOverwrites.edit(adminRole, { ViewChannel: true });
         return ch;
@@ -87,7 +92,6 @@ async function saveTable(guild, table, data) {
         if (json.length <= max) {
             await ch.send({ content: prefix + json });
         } else {
-            // si trop gros, on garde ce qui rentre (sécurité) + log
             await ch.send({ content: prefix + json.slice(0, max) });
             console.warn(`Table ${table} tronquée (trop de données).`);
         }
@@ -104,6 +108,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
     if (req.url === '/health') { res.writeHead(200); res.end('OK'); return; }
 
+    // Authentification Discord OAuth2
     if (req.url === '/api/auth/discord' && req.method === 'POST') {
         let body = ''; req.on('data', c => body += c);
         req.on('end', async () => {
@@ -131,6 +136,7 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // Réception des candidatures du site web
     if (req.url === '/api/candidature' && req.method === 'POST') {
         let body = ''; req.on('data', c => body += c);
         req.on('end', async () => {
@@ -138,7 +144,9 @@ const server = http.createServer(async (req, res) => {
                 if (!client.isReady()) { res.writeHead(503); res.end('Bot pas prêt'); return; }
                 const data = JSON.parse(body);
                 const guild = client.guilds.cache.get(process.env.GUILD_ID);
-                const staffChannel = guild.channels.cache.find(c => c.name === 'candidatures-staff' || c.name === 'admin');
+                // Détection sécurisée par ID, fallback par nom
+                const staffChannel = guild.channels.cache.get(CONFIG.candidatureChannelId)
+                    || guild.channels.cache.find(c => c.name === 'candidatures-staff');
                 if (!staffChannel) { res.writeHead(500); res.end('Salon staff introuvable'); return; }
                 const embed = new EmbedBuilder().setColor('#c9a961').setTitle('📋 Nouvelle Candidature Staff')
                     .setDescription(`**Candidat:** ${data.discordPseudo}\n**ID:** \`${data.discordId}\``)
@@ -152,7 +160,7 @@ const server = http.createServer(async (req, res) => {
                     new ButtonBuilder().setCustomId(`deny_staff_${data.discordId}`).setLabel('Refuser').setStyle(ButtonStyle.Danger).setEmoji('❌'));
                 await staffChannel.send({ embeds: [embed], components: [row] });
                 res.writeHead(200); res.end('OK');
-            } catch (e) { res.writeHead(500); res.end('Erreur interne'); }
+            } catch (e) { console.error('Erreur API candidature:', e); res.writeHead(500); res.end('Erreur interne'); }
         });
         return;
     }
@@ -170,6 +178,9 @@ client.once('clientReady', () => {
     startBirthdayChecker();
 });
 
+// ============================================================
+// COMMANDES SLASH (toutes les options ont une description)
+// ============================================================
 async function registerCommands() {
     const commands = [
         { name: 'ban', description: 'Bannir un utilisateur', options: [
@@ -202,7 +213,6 @@ async function registerCommands() {
             { name: 'secondes', type: 4, required: true, description: 'Délai en secondes' }] },
 
         { name: 'lock', description: 'Verrouiller le salon actuel' },
-
         { name: 'unlock', description: 'Déverrouiller le salon actuel' },
 
         { name: 'setup', description: 'Envoyer les embeds professionnels', options: [
@@ -246,14 +256,14 @@ async function registerCommands() {
 // ============================================================
 // ANTI-RAID : fenêtre glissante de joins
 // ============================================================
-const joinLog = new Map(); // guildId -> [timestamps]
+const joinLog = new Map();
 function checkRaid(guild) {
     const now = Date.now();
     let arr = joinLog.get(guild.id) || [];
     arr.push(now);
-    arr = arr.filter(t => now - t < 10000); // 10 secondes
+    arr = arr.filter(t => now - t < 10000);
     joinLog.set(guild.id, arr);
-    return arr.length >= 6; // 6 joins en 10s = suspect
+    return arr.length >= 6;
 }
 
 // ============================================================
@@ -269,21 +279,15 @@ client.on(Events.MessageCreate, async (message) => {
 
     let shouldDelete = false;
     let reason = '';
-
-    // Anti-liens / anti-pub
     const content = message.content.toLowerCase();
     const hasLink = /(https?:\/\/|discord\.gg\/|discord\.com\/invite)/i.test(message.content);
     if (hasLink) {
         const allowed = CONFIG.linkWhitelist.some(w => content.includes(w.toLowerCase()));
         if (!allowed) { shouldDelete = true; reason = 'lien non autorisé'; }
     }
-
-    // Anti mass-mention (>= 4 mentions)
     if (message.mentions.users.size >= 4 || message.mentions.roles.size >= 3) {
         shouldDelete = true; reason = 'mass-mention';
     }
-
-    // Anti-spam (5 msgs en 4s)
     const uid = message.author.id;
     const times = userMsgTimes.get(uid) || [];
     times.push(Date.now());
@@ -304,7 +308,6 @@ client.on(Events.MessageCreate, async (message) => {
                 .setTimestamp();
             await logCh.send({ embeds: [e] }).catch(() => {});
         }
-        // timeout auto en cas de spam répété
         if (reason === 'spam' && member.moderatable) {
             await member.timeout(5 * 60 * 1000, 'Anti-spam auto').catch(() => {});
         }
@@ -326,7 +329,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
     const channel = member.guild.channels.cache.get(CONFIG.welcomeChannelId);
     if (!channel) return;
     const embed = new EmbedBuilder().setColor('#c9a961').setTitle('🎉 Bienvenue sur Zone Gaming QC !')
-        .setDescription(`Salut ${member}, ravi de te compter parmi nous !\n\n👉 Lis le <#1531831739431911486>\n🎭 Prends tes rôles dans <#1531832520016924793>`)
+        .setDescription(`Salut ${member}, ravi de te compter parmi nous ! 🍁\n\n📜 Lis les règles dans <#${CONFIG.reglementsChannelId}>\n💬 Viens te présenter dans <#${CONFIG.generalChannelId}>\n🎮 Bonne aventure dans la Zone !`)
         .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
         .setFooter({ text: `Membre n°${member.guild.memberCount}` }).setTimestamp();
     await channel.send({ content: `${member}`, embeds: [embed] }).catch(() => {});
@@ -397,7 +400,7 @@ function startBirthdayChecker() {
                 }
             }
         }
-    }, 60 * 60 * 1000); // toutes les heures
+    }, 60 * 60 * 1000);
 }
 
 // ============================================================
@@ -429,7 +432,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                             { name: '6️⃣ Staff', value: 'Décisions finales, contestation en privé.', inline: true },
                             { name: '7️⃣ Vie privée', value: 'Pas de doxxing.', inline: true },
                             { name: '8️⃣ Spoilers', value: 'Balise ||spoiler|| obligatoire.', inline: true },
-                            { name: '9️⃣ Sanctions', value: '⚠️ Warn ️ 🔇 Mute ️ 🚪 Kick ️ 🔨 Ban.', inline: false })
+                            { name: '9️⃣ Sanctions', value: '⚠️ Warn ➡️ 🔇 Mute ➡️ 🚪 Kick ️ 🔨 Ban.', inline: false })
                         .setFooter({ text: 'Zone Gaming QC', iconURL: ico }).setTimestamp()] });
                 }
                 if (type === 'roles' || type === 'all') {
@@ -461,7 +464,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                                 .setURL('https://jacobin904.github.io/Zone-Gaming-QC/Postuler/').setEmoji('🌐'))] });
                 }
                 await interaction.editReply({ content: `✅ Setup **${type === 'all' ? 'complet' : type}** envoyé !` });
-            } catch (e) { await interaction.editReply({ content: '❌ Erreur setup.' }); }
+            } catch (e) { console.error('Erreur setup:', e); await interaction.editReply({ content: '❌ Erreur setup.' }); }
         }
 
         // ---------- /SETUP-TICKET ----------
@@ -552,7 +555,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
             await interaction.reply({ embeds: [e] });
             const lc = interaction.guild.channels.cache.get(CONFIG.logsChannelId);
             if (lc) await lc.send({ embeds: [e] }).catch(() => {});
-            // auto-mute à 3 warns
             if (data[target.id].length >= 3) {
                 const m = await interaction.guild.members.fetch(target.id).catch(() => null);
                 if (m && m.moderatable) await m.timeout(10 * 60 * 1000, 'Auto: 3 warns').catch(() => {});
