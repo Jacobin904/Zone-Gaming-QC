@@ -5,9 +5,9 @@ const {
 } = require('discord.js');
 const http = require('http');
 
-// ✅ Vérification des variables d'environnement au démarrage
-if (!process.env.TOKEN || !process.env.CLIENT_ID || !process.env.GUILD_ID) {
-    console.error('❌ Variables d\'environnement manquantes ! Vérifie ta config Render.');
+// ✅ Vérification des variables d'environnement
+if (!process.env.TOKEN || !process.env.CLIENT_ID || !process.env.GUILD_ID || !process.env.DISCORD_CLIENT_SECRET) {
+    console.error('❌ Variables d\'environnement manquantes ! Vérifie ta config Render (TOKEN, CLIENT_ID, GUILD_ID, DISCORD_CLIENT_SECRET).');
     process.exit(1);
 }
 
@@ -20,7 +20,6 @@ const client = new Client({
     ]
 });
 
-// --- CONFIGURATION DES SALONS & RÔLES ---
 const CONFIG = {
     welcomeChannelId: '1531832075454255216',
     goodbyeChannelId: '1531832012493688872',
@@ -28,35 +27,82 @@ const CONFIG = {
     logsChannelId: '1531829572914511955'
 };
 
-// ✅ SERVEUR HTTP POUR RENDER & API CANDIDATURE
+// ✅ SERVEUR HTTP POUR RENDER & API
 const server = http.createServer(async (req, res) => {
-    // En-têtes CORS pour autoriser ton site web (GitHub Pages) à parler au bot
+    // En-têtes CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    // Gérer les requêtes OPTIONS (preflight CORS)
     if (req.method === 'OPTIONS') {
         res.writeHead(204);
         res.end();
         return;
     }
 
-    // Health check pour Render
+    // 1. Health check pour Render
     if (req.url === '/health') {
         res.writeHead(200);
         res.end('OK');
         return;
     }
 
-    // Endpoint pour recevoir les candidatures du site web
+    // 2. Endpoint Authentification Discord OAuth2
+    if (req.url === '/api/auth/discord' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', async () => {
+            try {
+                const { code } = JSON.parse(body);
+                
+                // Échanger le code contre un token
+                const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                        client_id: process.env.CLIENT_ID,
+                        client_secret: process.env.DISCORD_CLIENT_SECRET,
+                        grant_type: 'authorization_code',
+                        code: code,
+                        redirect_uri: 'https://jacobin904.github.io/Zone-Gaming-QC/Postuler/callback.html'
+                    })
+                });
+                
+                const tokenData = await tokenResponse.json();
+                if (!tokenResponse.ok) throw new Error(tokenData.error_description || 'Erreur OAuth2');
+                
+                // Récupérer les infos de l'utilisateur
+                const userResponse = await fetch('https://discord.com/api/users/@me', {
+                    headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
+                });
+                
+                const userData = await userResponse.json();
+                
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    success: true,
+                    user: {
+                        id: userData.id,
+                        username: userData.username,
+                        discriminator: userData.discriminator || '0',
+                        avatar: userData.avatar
+                    }
+                }));
+            } catch (error) {
+                console.error('Erreur auth Discord:', error);
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, message: error.message }));
+            }
+        });
+        return;
+    }
+
+    // 3. Endpoint Candidature
     if (req.url === '/api/candidature' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk);
-        
         req.on('end', async () => {
             try {
-                // Vérifier si le bot est bien connecté à Discord
                 if (!client.isReady()) {
                     res.writeHead(503);
                     res.end('Bot pas encore prêt');
@@ -65,20 +111,17 @@ const server = http.createServer(async (req, res) => {
 
                 const data = JSON.parse(body);
                 const guild = client.guilds.cache.get(process.env.GUILD_ID);
-                
-                // Cherche le salon 'candidatures-staff' ou 'admin'
                 const staffChannel = guild.channels.cache.find(c => 
                     c.name === 'candidatures-staff' || c.name === 'admin'
                 );
 
                 if (!staffChannel) {
-                    console.error('Salon staff non trouvé. Crée un salon nommé "candidatures-staff" ou "admin".');
+                    console.error('Salon staff non trouvé.');
                     res.writeHead(500);
                     res.end('Salon staff non trouve');
                     return;
                 }
 
-                // Création de l'embed
                 const embed = new EmbedBuilder()
                     .setColor('#c9a961')
                     .setTitle('📋 Nouvelle Candidature Staff')
@@ -91,7 +134,6 @@ const server = http.createServer(async (req, res) => {
                     .setFooter({ text: 'Zone Gaming QC | Candidature Staff' })
                     .setTimestamp();
 
-                // Création des BOUTONS INTERACTIFS
                 const row = new ActionRowBuilder().addComponents(
                     new ButtonBuilder()
                         .setCustomId(`approve_staff_${data.discordId}`)
@@ -105,9 +147,7 @@ const server = http.createServer(async (req, res) => {
                         .setEmoji('❌')
                 );
 
-                // Envoi du message avec les boutons via le BOT
                 await staffChannel.send({ embeds: [embed], components: [row] });
-
                 res.writeHead(200);
                 res.end('OK');
             } catch (error) {
@@ -116,78 +156,17 @@ const server = http.createServer(async (req, res) => {
                 res.end('Erreur interne');
             }
         });
-    } else {
-        res.writeHead(404);
-        res.end();
+        return;
     }
+
+    // 4. Fallback 404
+    res.writeHead(404);
+    res.end();
 });
 
-// Démarrage du serveur HTTP
 server.listen(process.env.PORT || 3000, () => {
     console.log(`🌐 Health check et API actifs sur le port ${process.env.PORT || 3000}`);
 });
-
-// ✅ ENDPOINT AUTH DISCORD (à ajouter dans server.on('request'))
-if (req.url === '/api/auth/discord' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    
-    req.on('end', async () => {
-        try {
-            const { code } = JSON.parse(body);
-            
-            // Échanger le code contre un token
-            const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    client_id: '1533111086927315166',
-                    client_secret: process.env.DISCORD_CLIENT_SECRET, // À ajouter dans les variables Render
-                    grant_type: 'authorization_code',
-                    code: code,
-                    redirect_uri: 'https://jacobin904.github.io/Zone-Gaming-QC/Postuler/callback.html'
-                })
-            });
-            
-            const tokenData = await tokenResponse.json();
-            
-            if (!tokenResponse.ok) {
-                throw new Error(tokenData.error_description || 'Erreur OAuth2');
-            }
-            
-            // Récupérer les infos de l'utilisateur
-            const userResponse = await fetch('https://discord.com/api/users/@me', {
-                headers: {
-                    'Authorization': `Bearer ${tokenData.access_token}`
-                }
-            });
-            
-            const userData = await userResponse.json();
-            
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({
-                success: true,
-                user: {
-                    id: userData.id,
-                    username: userData.username,
-                    discriminator: userData.discriminator,
-                    avatar: userData.avatar
-                }
-            }));
-            
-        } catch (error) {
-            console.error('Erreur auth Discord:', error);
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({
-                success: false,
-                message: error.message
-            }));
-        }
-    });
-    return;
-}
 
 // --- ÉVÉNEMENTS DISCORD ---
 client.once('clientReady', () => {
@@ -196,7 +175,6 @@ client.once('clientReady', () => {
     registerCommands();
 });
 
-// Enregistrement automatique des commandes Slash
 async function registerCommands() {
     const commands = [
         { 
@@ -218,11 +196,9 @@ async function registerCommands() {
     }
 }
 
-// Bienvenue
 client.on(Events.GuildMemberAdd, async (member) => {
     const channel = member.guild.channels.cache.get(CONFIG.welcomeChannelId);
     if (!channel) return;
-
     const embed = new EmbedBuilder()
         .setColor('#c9a961')
         .setTitle('🎉 Bienvenue sur Zone Gaming QC !')
@@ -230,34 +206,27 @@ client.on(Events.GuildMemberAdd, async (member) => {
         .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
         .setFooter({ text: `Membre n°${member.guild.memberCount}` })
         .setTimestamp();
-
     await channel.send({ content: `${member}`, embeds: [embed] }).catch(console.error);
 });
 
-// Au revoir
 client.on(Events.GuildMemberRemove, async (member) => {
     const channel = member.guild.channels.cache.get(CONFIG.goodbyeChannelId);
     if (!channel) return;
-
     const embed = new EmbedBuilder()
         .setColor('#dc2626')
         .setTitle('👋 Départ')
         .setDescription(`${member.user.tag} a quitté le serveur.`)
         .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
         .setTimestamp();
-
     await channel.send({ embeds: [embed] }).catch(console.error);
 });
 
-// --- INTERACTIONS & COMMANDES ---
 client.on(Events.InteractionCreate, async (interaction) => {
     try {
-        // 1. BOUTONS CANDIDATURE STAFF
         if (interaction.isButton() && (interaction.customId.startsWith('approve_staff_') || interaction.customId.startsWith('deny_staff_'))) {
             if (!interaction.member.roles.cache.has(CONFIG.staffRoleId)) {
                 return interaction.reply({ content: '❌ Permission insuffisante.', ephemeral: true });
             }
-
             const isApprove = interaction.customId.startsWith('approve_staff_');
             const candidateId = interaction.customId.split('_')[2]; 
 
@@ -275,7 +244,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
             await interaction.showModal(modal);
         }
 
-        // 2. MODAL RÉPONSE STAFF
         if (interaction.isModalSubmit() && interaction.customId.startsWith('response_modal_')) {
             const parts = interaction.customId.split('_');
             const action = parts[2]; 
@@ -296,7 +264,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 )
                 .setTimestamp();
 
-            // Envoi au Webhook de Réponse avec ping
             await fetch(process.env.WEBHOOK_REPONSE, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -308,7 +275,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
             
             await interaction.reply({ content: '✅ Réponse envoyée au candidat.', ephemeral: true });
             
-            // Log interne
             const logChannel = interaction.guild.channels.cache.get(CONFIG.logsChannelId);
             if (logChannel) {
                 const logEmbed = new EmbedBuilder()
@@ -324,53 +290,42 @@ client.on(Events.InteractionCreate, async (interaction) => {
             }
         }
 
-        // 3. COMMANDE /BAN
         if (interaction.isChatInputCommand() && interaction.commandName === 'ban') {
             if (!interaction.member.permissions.has(PermissionFlagsBits.BanMembers)) {
                 return interaction.reply({ content: '❌ Permission insuffisante.', ephemeral: true });
             }
-
             const target = interaction.options.getUser('utilisateur');
             const reason = interaction.options.getString('raison') || 'Aucune raison spécifiée';
-
             await interaction.guild.members.ban(target, { reason });
             
             const embed = new EmbedBuilder()
                 .setColor('#dc2626')
-                .setTitle(' Bannissement')
+                .setTitle('🔨 Bannissement')
                 .setDescription(`${target} a été banni.`)
                 .addFields({ name: 'Raison', value: reason })
                 .setFooter({ text: `Par ${interaction.user.tag}` })
                 .setTimestamp();
-                
             await interaction.reply({ embeds: [embed] });
             
             const logChannel = interaction.guild.channels.cache.get(CONFIG.logsChannelId);
             if (logChannel) await logChannel.send({ embeds: [embed] });
         }
 
-        // 4. COMMANDE /TICKET
         if (interaction.isChatInputCommand() && interaction.commandName === 'ticket') {
             const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId('open_ticket')
-                    .setLabel('Ouvrir un ticket')
-                    .setStyle(ButtonStyle.Primary)
+                new ButtonBuilder().setCustomId('open_ticket').setLabel('Ouvrir un ticket').setStyle(ButtonStyle.Primary)
             );
             await interaction.reply({ content: 'Clique ci-dessous pour ouvrir un support.', components: [row], ephemeral: true });
         }
-
     } catch (error) {
-        console.error('Erreur lors du traitement de l\'interaction:', error);
+        console.error('Erreur interaction:', error);
         if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ content: '❌ Une erreur est survenue.', ephemeral: true }).catch(() => {});
         }
     }
 });
 
-// Gestion globale des erreurs pour éviter les crashs sur Render
 process.on('unhandledRejection', error => console.error('Promesse rejetée:', error));
 process.on('uncaughtException', error => console.error('Exception non capturée:', error));
 
-// Connexion du bot
 client.login(process.env.TOKEN);
