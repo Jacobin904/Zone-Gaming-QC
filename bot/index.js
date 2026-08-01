@@ -5,7 +5,7 @@ const {
 const http = require('http');
 
 if (!process.env.TOKEN || !process.env.CLIENT_ID || !process.env.GUILD_ID || !process.env.DISCORD_CLIENT_SECRET) {
-    console.error('❌ Variables manquantes sur Render !');
+    console.error('❌ Variables manquantes sur Render ! Vérifie TOKEN, CLIENT_ID, GUILD_ID, DISCORD_CLIENT_SECRET.');
     process.exit(1);
 }
 
@@ -13,10 +13,9 @@ const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.GuildModeration, // Nécessaire pour les logs de modération/bans
+        GatewayIntentBits.GuildModeration,
         GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildMessageReactions
+        GatewayIntentBits.MessageContent
     ]
 });
 
@@ -28,15 +27,16 @@ const CONFIG = {
     goodbyeChannelId: '1531833131823267901',
     birthdayChannelId: '1531833131823267901',
     staffRoleId: '1531835193395122186',
-    logsChannelId: '1531829572914511955',       // 📊・logs-modération
+    logsChannelId: '1531829572914511955',
     ticketCategoryId: '1531833907438289018',
     candidatureChannelId: '1533106862386446468',
     reglementsChannelId: '1531831739431911486',
     generalChannelId: '1531833131823267901',
-    verifyChannelId: '1532906707850625236',     // vérification
-    unverifiedRoleId: '1532905582175191120',    // Non vérifié
-    memberRoleId: '1531832874599448666',        // Membre
-    linkWhitelist: ['discord.gg/d8g2eztfbM', 'jacobin904.github.io']
+    verifyChannelId: '1532906707850625236',
+    unverifiedRoleId: '1532905582175191120',
+    memberRoleId: '1531832874599448666',
+    linkWhitelist: ['discord.gg/d8g2eztfbM', 'jacobin904.github.io'],
+    logoUrl: 'https://cdn.discordapp.com/icons/1531829572453007533/c69bf91096081b8274e81a0a0eefa18e.webp?size=1024'
 };
 
 // ============================================================
@@ -101,12 +101,12 @@ async function saveTable(guild, table, data) {
 // ============================================================
 // SYSTÈME DE LOGS UNIFIÉ (Visuel + Base de données)
 // ============================================================
-async function sendLog(guild, title, fields) {
+async function sendLog(guild, title, fields, color = '#c9a961') {
     const embed = new EmbedBuilder()
-        .setColor('#c9a961')
+        .setColor(color)
         .setTitle(`📝 ${title}`)
         .addFields(fields)
-        .setFooter({ text: 'Zone Gaming QC Logs' })
+        .setFooter({ text: 'Zone Gaming QC • Système de Logs', iconURL: CONFIG.logoUrl })
         .setTimestamp();
 
     // 1. Envoi dans le salon de logs visuel
@@ -116,12 +116,7 @@ async function sendLog(guild, title, fields) {
     // 2. Sauvegarde dans la base de données Discord
     const logs = await loadTable(guild, 'system_logs');
     if (!logs.history) logs.history = [];
-    logs.history.push({
-        title,
-        fields: fields.map(f => ({ name: f.name, value: f.value })),
-        timestamp: Date.now()
-    });
-    // Garder seulement les 200 derniers logs pour ne pas surcharger
+    logs.history.push({ title, fields: fields.map(f => ({ name: f.name, value: f.value })), timestamp: Date.now() });
     if (logs.history.length > 200) logs.history = logs.history.slice(-200);
     await saveTable(guild, 'system_logs', logs);
 }
@@ -180,7 +175,7 @@ const server = http.createServer(async (req, res) => {
                         { name: 'Disponibilité', value: data.disponibilite, inline: true },
                         { name: 'Expérience', value: (data.experience || '').substring(0, 1024), inline: false },
                         { name: 'Motivation', value: (data.motivation || '').substring(0, 1024), inline: false }
-                    ).setFooter({ text: 'Zone Gaming QC' }).setTimestamp();
+                    ).setFooter({ text: 'Zone Gaming QC', iconURL: CONFIG.logoUrl }).setTimestamp();
                 
                 const row = new ActionRowBuilder().addComponents(
                     new ButtonBuilder().setCustomId(`approve_${data.discordId}`).setLabel('Approuver').setStyle(ButtonStyle.Success).setEmoji('✅'),
@@ -197,7 +192,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(process.env.PORT || 3000, () => console.log(`🌐 API + health sur port ${process.env.PORT || 3000}`));
 
 // ============================================================
-// DÉMARRAGE & COMMANDES
+// DÉMARRAGE & COMMANDES (TOUTES LES OPTIONS ONT UNE DESCRIPTION)
 // ============================================================
 client.once('clientReady', () => {
     console.log(`✅ Bot connecté : ${client.user.tag}`);
@@ -208,23 +203,52 @@ client.once('clientReady', () => {
 
 async function registerCommands() {
     const commands = [
-        { name: 'ban', description: 'Bannir un utilisateur', options: [{ name: 'utilisateur', type: 6, required: true }, { name: 'raison', type: 3, required: false }] },
-        { name: 'kick', description: 'Expulser un utilisateur', options: [{ name: 'utilisateur', type: 6, required: true }, { name: 'raison', type: 3, required: false }] },
-        { name: 'mute', description: 'Mettre en timeout', options: [{ name: 'utilisateur', type: 6, required: true }, { name: 'duree_minutes', type: 4, required: true }, { name: 'raison', type: 3, required: false }] },
-        { name: 'unmute', description: 'Retirer le timeout', options: [{ name: 'utilisateur', type: 6, required: true }] },
-        { name: 'warn', description: 'Avertir un utilisateur', options: [{ name: 'utilisateur', type: 6, required: true }, { name: 'raison', type: 3, required: true }] },
-        { name: 'clear', description: 'Supprimer des messages', options: [{ name: 'nombre', type: 4, required: true }] },
-        { name: 'lock', description: 'Verrouiller le salon' },
-        { name: 'unlock', description: 'Déverrouiller le salon' },
-        { name: 'setup', description: 'Envoyer les embeds pros', options: [{ name: 'type', type: 3, required: true, choices: [{ name: '📜 Règlements', value: 'rules' }, { name: '🎭 Rôles', value: 'roles' }, { name: '🎫 Tickets', value: 'tickets' }, { name: '🛡️ Staff', value: 'staff' }, { name: '🚀 TOUT', value: 'all' }] }] },
-        { name: 'setup-ticket', description: 'Panneau de ticket', options: [{ name: 'salon', type: 7, required: true, channel_types: [0] }] },
-        { name: 'setup-verify', description: 'Envoyer le panneau de vérification humaine' },
-        { name: 'role-menu', description: 'Menu de rôles', options: [{ name: 'role1', type: 8, required: true }, { name: 'role2', type: 8, required: false }, { name: 'role3', type: 8, required: false }] },
-        { name: 'birthday', description: 'Gérer ton anniversaire', options: [{ name: 'set', type: 1, options: [{ name: 'jour', type: 4, required: true }, { name: 'mois', type: 4, required: true }] }, { name: 'remove', type: 1 }, { name: 'list', type: 1 }] },
-        { name: 'translate', description: 'Traduire un texte', options: [{ name: 'texte', type: 3, required: true }, { name: 'langue', type: 3, required: true }] }
+        { name: 'ban', description: 'Bannir un utilisateur du serveur', options: [
+            { name: 'utilisateur', type: 6, required: true, description: 'L\'utilisateur à bannir' },
+            { name: 'raison', type: 3, required: false, description: 'La raison du bannissement' }] },
+        { name: 'kick', description: 'Expulser un utilisateur du serveur', options: [
+            { name: 'utilisateur', type: 6, required: true, description: 'L\'utilisateur à expulser' },
+            { name: 'raison', type: 3, required: false, description: 'La raison de l\'expulsion' }] },
+        { name: 'mute', description: 'Mettre un utilisateur en timeout (silence)', options: [
+            { name: 'utilisateur', type: 6, required: true, description: 'L\'utilisateur à mettre en timeout' },
+            { name: 'duree_minutes', type: 4, required: true, description: 'Durée du timeout en minutes' },
+            { name: 'raison', type: 3, required: false, description: 'La raison du timeout' }] },
+        { name: 'unmute', description: 'Retirer le timeout d\'un utilisateur', options: [
+            { name: 'utilisateur', type: 6, required: true, description: 'L\'utilisateur à débannir du timeout' }] },
+        { name: 'warn', description: 'Donner un avertissement à un utilisateur', options: [
+            { name: 'utilisateur', type: 6, required: true, description: 'L\'utilisateur à avertir' },
+            { name: 'raison', type: 3, required: true, description: 'La raison de l\'avertissement' }] },
+        { name: 'clear', description: 'Supprimer un nombre de messages dans le salon', options: [
+            { name: 'nombre', type: 4, required: true, description: 'Nombre de messages à supprimer (1-100)' }] },
+        { name: 'lock', description: 'Verrouiller le salon actuel pour les membres' },
+        { name: 'unlock', description: 'Déverrouiller le salon actuel pour les membres' },
+        { name: 'setup', description: 'Envoyer les embeds de configuration professionnels', options: [
+            { name: 'type', type: 3, required: true, description: 'Le type de configuration à envoyer', choices: [
+                { name: '📜 Règlements', value: 'rules' }, { name: '🎭 Rôles', value: 'roles' },
+                { name: '🎫 Tickets', value: 'tickets' }, { name: '🛡️ Staff', value: 'staff' }, { name: '🚀 TOUT', value: 'all' }] }] },
+        { name: 'setup-ticket', description: 'Envoyer le panneau de création de ticket', options: [
+            { name: 'salon', type: 7, required: true, description: 'Le salon où envoyer le panneau', channel_types: [0] }] },
+        { name: 'setup-verify', description: 'Envoyer le panneau de vérification humaine (anti-bot)' },
+        { name: 'role-menu', description: 'Créer un menu interactif pour attribuer des rôles', options: [
+            { name: 'role1', type: 8, required: true, description: 'Le premier rôle à proposer' },
+            { name: 'role2', type: 8, required: false, description: 'Le deuxième rôle à proposer' },
+            { name: 'role3', type: 8, required: false, description: 'Le troisième rôle à proposer' }] },
+        { name: 'birthday', description: 'Gérer ton anniversaire sur le serveur', options: [
+            { name: 'set', type: 1, description: 'Enregistrer la date de ton anniversaire', options: [
+                { name: 'jour', type: 4, required: true, description: 'Le jour du mois (1-31)' },
+                { name: 'mois', type: 4, required: true, description: 'Le mois de l\'année (1-12)' }] },
+            { name: 'remove', type: 1, description: 'Supprimer ton anniversaire enregistré' },
+            { name: 'list', type: 1, description: 'Voir la liste des anniversaires du mois' }] },
+        { name: 'translate', description: 'Traduire un texte dans une autre langue', options: [
+            { name: 'texte', type: 3, required: true, description: 'Le texte à traduire' },
+            { name: 'langue', type: 3, required: true, description: 'La langue cible (ex: en, es, it)' }] }
     ];
-    try { await client.application.commands.set(commands); console.log('✅ Commandes enregistrées !'); }
-    catch (e) { console.error('❌ Erreur commandes:', e); }
+    try { 
+        await client.application.commands.set(commands); 
+        console.log('✅ Commandes enregistrées avec succès !'); 
+    } catch (e) { 
+        console.error('❌ Erreur lors de l\'enregistrement des commandes:', e); 
+    }
 }
 
 // ============================================================
@@ -236,7 +260,7 @@ client.on(Events.MessageDelete, async (message) => {
         { name: 'Auteur', value: `${message.author} (\`${message.author.id}\`)`, inline: true },
         { name: 'Salon', value: `${message.channel}`, inline: true },
         { name: 'Contenu', value: message.content.substring(0, 1000) }
-    ]);
+    ], '#d97706');
 });
 
 client.on(Events.MessageUpdate, async (oldMsg, newMsg) => {
@@ -246,28 +270,26 @@ client.on(Events.MessageUpdate, async (oldMsg, newMsg) => {
         { name: 'Salon', value: `${newMsg.channel}`, inline: true },
         { name: 'Avant', value: (oldMsg.content || '*vide*').substring(0, 500) },
         { name: 'Après', value: (newMsg.content || '*vide*').substring(0, 500) }
-    ]);
+    ], '#3498db');
 });
 
 client.on(Events.GuildMemberUpdate, async (oldMember, newMember) => {
     const guild = oldMember.guild;
-    // Changement de rôle
-    const oldRoles = oldMember.roles.cache.map(r => r.name).join(', ') || 'Aucun';
-    const newRoles = newMember.roles.cache.map(r => r.name).join(', ') || 'Aucun';
-    if (oldRoles !== newRoles) {
+    if (oldMember.roles.cache.size !== newMember.roles.cache.size) {
+        const oldRoles = oldMember.roles.cache.map(r => r.name).join(', ') || 'Aucun';
+        const newRoles = newMember.roles.cache.map(r => r.name).join(', ') || 'Aucun';
         sendLog(guild, 'Rôles Modifiés', [
             { name: 'Membre', value: `${newMember.user} (\`${newMember.id}\`)`, inline: true },
             { name: 'Anciens rôles', value: oldRoles.substring(0, 1000), inline: false },
             { name: 'Nouveaux rôles', value: newRoles.substring(0, 1000), inline: false }
-        ]);
+        ], '#9b59b6');
     }
-    // Changement de pseudo
     if (oldMember.nickname !== newMember.nickname) {
         sendLog(guild, 'Pseudo Modifié', [
             { name: 'Membre', value: `${newMember.user} (\`${newMember.id}\`)`, inline: true },
             { name: 'Ancien pseudo', value: oldMember.nickname || '*Aucun*', inline: true },
             { name: 'Nouveau pseudo', value: newMember.nickname || '*Aucun*', inline: true }
-        ]);
+        ], '#9b59b6');
     }
 });
 
@@ -275,25 +297,25 @@ client.on(Events.GuildBanAdd, async (ban) => {
     sendLog(ban.guild, 'Membre Banni', [
         { name: 'Utilisateur', value: `${ban.user.tag} (\`${ban.user.id}\`)`, inline: true },
         { name: 'Raison', value: ban.reason || '*Non spécifiée*', inline: true }
-    ]);
+    ], '#dc2626');
 });
 
 client.on(Events.ChannelCreate, async (channel) => {
     sendLog(channel.guild, 'Salon Créé', [
         { name: 'Nom', value: channel.name, inline: true },
         { name: 'Type', value: channel.type === ChannelType.GuildText ? 'Texte' : 'Vocal', inline: true }
-    ]);
+    ], '#059669');
 });
 
 client.on(Events.ChannelDelete, async (channel) => {
     sendLog(channel.guild, 'Salon Supprimé', [
         { name: 'Nom', value: channel.name, inline: true },
         { name: 'ID', value: channel.id, inline: true }
-    ]);
+    ], '#dc2626');
 });
 
 // ============================================================
-// ANTI-SPAM / ANTI-RAID / WELCOME
+// ANTI-RAID / WELCOME / LEAVE
 // ============================================================
 const joinLog = new Map();
 function checkRaid(guild) {
@@ -312,16 +334,24 @@ client.on(Events.GuildMemberAdd, async (member) => {
     }
     const channel = member.guild.channels.cache.get(CONFIG.welcomeChannelId);
     if (channel) {
-        const embed = new EmbedBuilder().setColor('#c9a961').setTitle('🎉 Bienvenue sur Zone Gaming QC !')
-            .setDescription(`Salut ${member} ! 🍁\n📜 Lis les règles dans <#${CONFIG.reglementsChannelId}>\n💬 Présente-toi dans <#${CONFIG.generalChannelId}>`)
-            .setThumbnail(member.user.displayAvatarURL({ dynamic: true })).setFooter({ text: `Membre n°${member.guild.memberCount}` }).setTimestamp();
+        const embed = new EmbedBuilder()
+            .setColor('#c9a961')
+            .setTitle('🎉 Bienvenue sur Zone Gaming QC !')
+            .setDescription(`Salut ${member}, nous sommes ravis de t'accueillir dans notre communauté gaming 100% québécoise ! 🍁\n\nPour bien commencer ton aventure, voici quelques étapes recommandées :`)
+            .addFields(
+                { name: '📜 Étape 1 : Lis les règles', value: `Prends le temps de lire le règlement dans <#${CONFIG.reglementsChannelId}> pour assurer une ambiance saine.` },
+                { name: '💬 Étape 2 : Présente-toi', value: `Viens discuter et faire connaissance avec la communauté dans <#${CONFIG.generalChannelId}>.` },
+                { name: '🎭 Étape 3 : Personnalise ton profil', value: `Attribue-toi des rôles pour accéder aux salons de jeux et recevoir les notifications.` }
+            )
+            .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
+            .setFooter({ text: `Zone Gaming QC • Membre n°${member.guild.memberCount}`, iconURL: CONFIG.logoUrl })
+            .setTimestamp();
         await channel.send({ content: `${member}`, embeds: [embed] }).catch(() => {});
     }
-    // Log join
     sendLog(member.guild, 'Nouveau Membre', [
         { name: 'Utilisateur', value: `${member.user} (\`${member.id}\`)`, inline: true },
         { name: 'Compte créé le', value: `<t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`, inline: true }
-    ]);
+    ], '#059669');
 });
 
 client.on(Events.GuildMemberRemove, async (member) => {
@@ -334,7 +364,7 @@ client.on(Events.GuildMemberRemove, async (member) => {
     sendLog(member.guild, 'Membre Parti', [
         { name: 'Utilisateur', value: `${member.user} (\`${member.id}\`)`, inline: true },
         { name: 'A rejoint le', value: `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>`, inline: true }
-    ]);
+    ], '#dc2626');
 });
 
 // ============================================================
@@ -344,22 +374,24 @@ client.on(Events.InteractionCreate, async (interaction) => {
     try {
         const member = interaction.member;
 
-        // ---------- /SETUP-VERIFY (Vérification Humaine) ----------
+        // ---------- /SETUP-VERIFY ----------
         if (interaction.isChatInputCommand() && interaction.commandName === 'setup-verify') {
             if (!member.permissions.has(PermissionFlagsBits.ManageChannels)) return interaction.reply({ content: '❌ Permission requise.', ephemeral: true });
             
             const embed = new EmbedBuilder()
-                .setColor('#c9a961')
-                .setTitle('🛡️ Vérification de Sécurité')
-                .setDescription('Pour accéder au serveur, clique sur le bouton ci-dessous.\n*Ceci confirme que tu es un humain et que tu acceptes les règles.*')
-                .setFooter({ text: 'Zone Gaming QC' });
+                .setColor('#059669')
+                .setTitle('🛡️ Vérification de Sécurité Humaine')
+                .setDescription('Bienvenue sur **Zone Gaming QC** !\n\nPour accéder à l\'ensemble du serveur et protéger notre communauté contre les raids et les bots, une vérification simple est requise.\n\n👇 **Clique sur le bouton "Je suis humain" ci-dessous** pour obtenir ton rôle de membre et accéder aux salons.')
+                .addFields({ name: '⚠️ Important', value: `En cliquant sur ce bouton, tu confirmes que tu as lu et accepté le <#${CONFIG.reglementsChannelId}>.` })
+                .setFooter({ text: 'Zone Gaming QC • Sécurité et Qualité', iconURL: CONFIG.logoUrl })
+                .setTimestamp();
             
             const row = new ActionRowBuilder().addComponents(
                 new ButtonBuilder().setCustomId('verify_human').setLabel('Je suis humain').setStyle(ButtonStyle.Success).setEmoji('✅')
             );
             
             await interaction.channel.send({ embeds: [embed], components: [row] });
-            await interaction.reply({ content: '✅ Panneau de vérification envoyé !', ephemeral: true });
+            await interaction.reply({ content: '✅ Panneau de vérification envoyé avec succès !', ephemeral: true });
         }
 
         // ---------- BOUTON DE VÉRIFICATION ----------
@@ -368,11 +400,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 await member.roles.remove(CONFIG.unverifiedRoleId);
                 await member.roles.add(CONFIG.memberRoleId);
                 await interaction.reply({ content: '✅ Vérification réussie ! Bienvenue sur Zone Gaming QC.', ephemeral: true });
-                
                 sendLog(interaction.guild, 'Utilisateur Vérifié', [
                     { name: 'Utilisateur', value: `${member.user} (\`${member.id}\`)`, inline: true },
                     { name: 'Action', value: 'Rôle "Non vérifié" retiré, rôle "Membre" ajouté', inline: false }
-                ]);
+                ], '#059669');
             } else if (member.roles.cache.has(CONFIG.memberRoleId)) {
                 await interaction.reply({ content: 'ℹ️ Tu es déjà vérifié !', ephemeral: true });
             } else {
@@ -387,33 +418,49 @@ client.on(Events.InteractionCreate, async (interaction) => {
             const channel = interaction.channel;
             await interaction.deferReply({ ephemeral: true });
             const site = 'https://jacobin904.github.io/Zone-Gaming-QC/';
-            const ico = 'https://cdn.discordapp.com/icons/1531829572453007533/c69bf91096081b8274e81a0a0eefa18e.webp?size=1024';
             
             if (type === 'rules' || type === 'all') {
                 await channel.send({ embeds: [new EmbedBuilder().setColor('#c9a961').setTitle('📜 Règlements de Zone Gaming QC')
-                    .setDescription('En rejoignant ce serveur, vous acceptez les règles suivantes.')
-                    .addFields({ name: '1️⃣ Respect', value: 'Insultes, harcèlement, discrimination = BAN IMMÉDIAT.', inline: false },
-                               { name: '2️⃣ Langue', value: 'Français principal.', inline: true },
-                               { name: '3️⃣ NSFW', value: 'Strictement interdit.', inline: true },
-                               { name: '4️⃣ Spam & Pub', value: 'Interdits sans accord du staff.', inline: true },
-                               { name: '5️⃣ Sanctions', value: '⚠️ Warn ➡️ 🔇 Mute ➡️ 🚪 Kick ➡️ 🔨 Ban.', inline: false })
-                    .setFooter({ text: 'Zone Gaming QC', iconURL: ico }).setTimestamp()] });
+                    .setDescription('En rejoignant ce serveur, tu t\'engages à respecter les règles suivantes. Leur non-respect entraînera des sanctions progressives (Avertissement ➡️ Mute ➡️ Kick ➡️ Ban).')
+                    .addFields(
+                        { name: '1️⃣ Respect & Tolérance', value: 'Toute forme d\'insulte, de harcèlement, de racisme ou de discrimination est strictement interdite et sera sanctionnée d\'un **BAN IMMÉDIAT**.', inline: false },
+                        { name: '2️⃣ Langue & Communication', value: 'Le français est la langue principale. L\'anglais est toléré, mais évite le langage SMS excessif.', inline: true },
+                        { name: '3️⃣ Contenu NSFW', value: 'Tout contenu à caractère sexuel, violent ou choquant est formellement interdit.', inline: true },
+                        { name: '4️⃣ Spam & Publicité', value: 'Le flood de messages ou la publicité sans accord de la direction est interdit.', inline: true },
+                        { name: '5️⃣ Salons Vocaux', value: 'Respecte les autres : pas de cris, de soundboards ou de musique forte sans casque.', inline: true },
+                        { name: '6️⃣ Autorité du Staff', value: 'Les décisions de l\'équipe sont finales. Toute contestation doit se faire en privé via un ticket.', inline: true },
+                        { name: '7️⃣ Vie Privée & Sécurité', value: 'Ne partage jamais tes informations personnelles et ne publie pas celles des autres (doxxing).', inline: false },
+                        { name: '8️⃣ Spoilers', value: 'Utilise la balise `||spoiler||` pour les sorties récentes de jeux, films ou séries.', inline: false }
+                    )
+                    .setFooter({ text: 'Zone Gaming QC • Une communauté saine et dynamique', iconURL: CONFIG.logoUrl }).setTimestamp()] });
             }
             if (type === 'roles' || type === 'all') {
-                await channel.send({ embeds: [new EmbedBuilder().setColor('#c9a961').setTitle('🎭 Attribution des Rôles').setDescription('Clique sur les boutons ci-dessous.')],
+                await channel.send({ embeds: [new EmbedBuilder().setColor('#c9a961').setTitle('🎭 Attribution des Rôles').setDescription('Clique sur les boutons ci-dessous pour personnaliser ton expérience et recevoir les notifications des événements et jeux.')],
                     components: [new ActionRowBuilder().addComponents(
                         new ButtonBuilder().setCustomId('role_games').setLabel('🎮 Notifs Jeux').setStyle(ButtonStyle.Secondary),
                         new ButtonBuilder().setCustomId('role_events').setLabel('🎉 Notifs Events').setStyle(ButtonStyle.Secondary))] });
             }
             if (type === 'tickets' || type === 'all') {
-                await channel.send({ embeds: [new EmbedBuilder().setColor('#c9a961').setTitle('🎫 Centre de Support').setDescription('Besoin d\'aide ? Clique ci-dessous.')],
+                await channel.send({ embeds: [new EmbedBuilder().setColor('#c9a961').setTitle('🎫 Centre de Support Zone Gaming QC')
+                    .setDescription('Besoin d\'aide, d\'une modération ou d\'une réponse rapide de la part de l\'équipe ?\nNotre système de tickets est là pour toi.')
+                    .addFields(
+                        { name: '💡 Comment ça marche ?', value: '1. Clique sur le bouton ci-dessous.\n2. Un salon privé sera créé pour toi et le staff.\n3. Décris ton problème en détail pour une prise en charge optimale.' },
+                        { name: '⚠️ Règles des tickets', value: '• Sois patient, un membre du staff va arriver.\n• Ne ferme pas le ticket sans raison valable.\n• Toute insulte en ticket entraînera un avertissement.' }
+                    )
+                    .setFooter({ text: `Zone Gaming QC • Site: ${site}`, iconURL: CONFIG.logoUrl })],
                     components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId('open_ticket').setLabel('Ouvrir un ticket').setStyle(ButtonStyle.Primary).setEmoji('📩'))] });
             }
             if (type === 'staff' || type === 'all') {
-                await channel.send({ embeds: [new EmbedBuilder().setColor('#c9a961').setTitle('🛡️ Rejoindre l\'Équipe Staff').setDescription('Motivé ? Postule via notre site.')],
+                await channel.send({ embeds: [new EmbedBuilder().setColor('#c9a961').setTitle('🛡️ Rejoindre l\'Équipe Staff')
+                    .setDescription('Tu es motivé, mature et passionné par l\'animation de communauté ?\nNous cherchons régulièrement de nouveaux talents pour renforcer notre équipe de modération et d\'animation.')
+                    .addFields(
+                        { name: '✅ Ce que nous recherchons', value: '• Une maturité et un esprit d\'équipe irréprochables.\n• Une disponibilité régulière sur le serveur.\n• Une réelle envie d\'aider et de faire grandir la communauté.' },
+                        { name: '📝 Comment postuler ?', value: 'Le processus de recrutement est entièrement sécurisé et se fait via notre site web officiel. Clique sur le bouton ci-dessous pour accéder au formulaire.' }
+                    )
+                    .setFooter({ text: `Zone Gaming QC • Site: ${site}`, iconURL: CONFIG.logoUrl })],
                     components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setLabel('Postuler sur le Site Web').setStyle(ButtonStyle.Link).setURL('https://jacobin904.github.io/Zone-Gaming-QC/Postuler/').setEmoji('🌐'))] });
             }
-            await interaction.editReply({ content: `✅ Setup **${type === 'all' ? 'complet' : type}** envoyé !` });
+            await interaction.editReply({ content: `✅ Setup **${type === 'all' ? 'complet' : type}** envoyé avec des embeds enrichis !` });
         }
 
         // ---------- /BAN ----------
@@ -422,9 +469,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
             const target = interaction.options.getUser('utilisateur');
             const reason = interaction.options.getString('raison') || 'Aucune raison';
             await interaction.guild.members.ban(target, { reason }).catch(() => {});
-            const e = new EmbedBuilder().setColor('#dc2626').setTitle('🔨 Bannissement').setDescription(`${target} a été banni.`).addFields({ name: 'Raison', value: reason }).setFooter({ text: `Par ${interaction.user.tag}` }).setTimestamp();
-            await interaction.reply({ embeds: [e] });
-            sendLog(interaction.guild, 'Action Modération: Ban', [{ name: 'Cible', value: `${target.tag} (\`${target.id}\`)`, inline: true }, { name: 'Modérateur', value: `${interaction.user}`, inline: true }, { name: 'Raison', value: reason }]);
+            await interaction.reply({ content: `🔨 ${target} a été banni.`, ephemeral: true });
+            sendLog(interaction.guild, 'Action Modération: Ban', [
+                { name: 'Cible', value: `${target.tag} (\`${target.id}\`)`, inline: true },
+                { name: 'Modérateur', value: `${interaction.user}`, inline: true },
+                { name: 'Raison', value: reason }
+            ], '#dc2626');
         }
 
         // ---------- /KICK ----------
@@ -435,7 +485,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
             if (!target) return interaction.reply({ content: '❌ Membre introuvable.', ephemeral: true });
             await target.kick(reason).catch(() => {});
             await interaction.reply({ content: `🚪 ${target.user} a été expulsé.`, ephemeral: true });
-            sendLog(interaction.guild, 'Action Modération: Kick', [{ name: 'Cible', value: `${target.user.tag} (\`${target.id}\`)`, inline: true }, { name: 'Modérateur', value: `${interaction.user}`, inline: true }, { name: 'Raison', value: reason }]);
+            sendLog(interaction.guild, 'Action Modération: Kick', [
+                { name: 'Cible', value: `${target.user.tag} (\`${target.id}\`)`, inline: true },
+                { name: 'Modérateur', value: `${interaction.user}`, inline: true },
+                { name: 'Raison', value: reason }
+            ], '#d97706');
         }
 
         // ---------- /MUTE ----------
@@ -447,7 +501,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
             if (!target || !target.moderatable) return interaction.reply({ content: '❌ Impossible de mute ce membre.', ephemeral: true });
             await target.timeout(mins * 60 * 1000, reason).catch(() => {});
             await interaction.reply({ content: `🔇 ${target.user} mis en timeout ${mins} min.`, ephemeral: true });
-            sendLog(interaction.guild, 'Action Modération: Mute', [{ name: 'Cible', value: `${target.user.tag} (\`${target.id}\`)`, inline: true }, { name: 'Modérateur', value: `${interaction.user}`, inline: true }, { name: 'Durée', value: `${mins} minutes` }, { name: 'Raison', value: reason }]);
+            sendLog(interaction.guild, 'Action Modération: Mute', [
+                { name: 'Cible', value: `${target.user.tag} (\`${target.id}\`)`, inline: true },
+                { name: 'Modérateur', value: `${interaction.user}`, inline: true },
+                { name: 'Durée', value: `${mins} minutes` },
+                { name: 'Raison', value: reason }
+            ], '#d97706');
         }
 
         // ---------- /UNMUTE ----------
@@ -457,7 +516,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
             if (!target) return interaction.reply({ content: '❌ Membre introuvable.', ephemeral: true });
             await target.timeout(null).catch(() => {});
             await interaction.reply({ content: `🔊 Timeout retiré pour ${target.user}.`, ephemeral: true });
-            sendLog(interaction.guild, 'Action Modération: Unmute', [{ name: 'Cible', value: `${target.user.tag} (\`${target.id}\`)`, inline: true }, { name: 'Modérateur', value: `${interaction.user}`, inline: true }]);
+            sendLog(interaction.guild, 'Action Modération: Unmute', [
+                { name: 'Cible', value: `${target.user.tag} (\`${target.id}\`)`, inline: true },
+                { name: 'Modérateur', value: `${interaction.user}`, inline: true }
+            ], '#059669');
         }
 
         // ---------- /WARN ----------
@@ -470,7 +532,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
             data[target.id].push({ by: interaction.user.id, reason, date: new Date().toISOString() });
             await saveTable(interaction.guild, 'warns', data);
             await interaction.reply({ content: `⚠️ ${target} a reçu un warn. Total: ${data[target.id].length}`, ephemeral: true });
-            sendLog(interaction.guild, 'Action Modération: Warn', [{ name: 'Cible', value: `${target.tag} (\`${target.id}\`)`, inline: true }, { name: 'Modérateur', value: `${interaction.user}`, inline: true }, { name: 'Raison', value: reason }, { name: 'Total Warns', value: `${data[target.id].length}` }]);
+            sendLog(interaction.guild, 'Action Modération: Warn', [
+                { name: 'Cible', value: `${target.tag} (\`${target.id}\`)`, inline: true },
+                { name: 'Modérateur', value: `${interaction.user}`, inline: true },
+                { name: 'Raison', value: reason },
+                { name: 'Total Warns', value: `${data[target.id].length}` }
+            ], '#d97706');
             if (data[target.id].length >= 3) {
                 const m = await interaction.guild.members.fetch(target.id).catch(() => null);
                 if (m && m.moderatable) await m.timeout(10 * 60 * 1000, 'Auto: 3 warns').catch(() => {});
@@ -484,7 +551,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
             if (n < 1 || n > 100) return interaction.reply({ content: '❌ Entre 1 et 100.', ephemeral: true });
             const deleted = await interaction.channel.bulkDelete(n, true).catch(() => []);
             await interaction.reply({ content: `🗑️ ${deleted.size} message(s) supprimé(s).`, ephemeral: true });
-            sendLog(interaction.guild, 'Action Modération: Clear', [{ name: 'Modérateur', value: `${interaction.user}`, inline: true }, { name: 'Salon', value: `${interaction.channel}`, inline: true }, { name: 'Messages supprimés', value: `${deleted.size}`, inline: true }]);
+            sendLog(interaction.guild, 'Action Modération: Clear', [
+                { name: 'Modérateur', value: `${interaction.user}`, inline: true },
+                { name: 'Salon', value: `${interaction.channel}`, inline: true },
+                { name: 'Messages supprimés', value: `${deleted.size}`, inline: true }
+            ], '#d97706');
         }
 
         // ---------- /LOCK & /UNLOCK ----------
@@ -493,7 +564,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
             const lock = interaction.commandName === 'lock';
             await interaction.channel.permissionOverwrites.edit(interaction.guild.id, { SendMessages: !lock }).catch(() => {});
             await interaction.reply({ content: lock ? '🔒 Salon verrouillé.' : '🔓 Salon déverrouillé.', ephemeral: true });
-            sendLog(interaction.guild, `Salon ${lock ? 'Verrouillé' : 'Déverrouillé'}`, [{ name: 'Salon', value: `${interaction.channel}`, inline: true }, { name: 'Modérateur', value: `${interaction.user}`, inline: true }]);
+            sendLog(interaction.guild, `Salon ${lock ? 'Verrouillé' : 'Déverrouillé'}`, [
+                { name: 'Salon', value: `${interaction.channel}`, inline: true },
+                { name: 'Modérateur', value: `${interaction.user}`, inline: true }
+            ], lock ? '#dc2626' : '#059669');
         }
 
         // ---------- /ROLE-MENU ----------
@@ -503,7 +577,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             const buttons = roles.map(r => new ButtonBuilder().setCustomId(`roletoggle_${r.id}`).setLabel(r.name).setStyle(ButtonStyle.Secondary));
             const rows = [];
             for (let i = 0; i < buttons.length; i += 5) rows.push(new ActionRowBuilder().addComponents(buttons.slice(i, i + 5)));
-            await interaction.channel.send({ embeds: [new EmbedBuilder().setColor('#c9a961').setTitle('🎭 Choisis tes rôles').setDescription('Clique sur les boutons pour activer/désactiver un rôle.')], components: rows });
+            await interaction.channel.send({ embeds: [new EmbedBuilder().setColor('#c9a961').setTitle('🎭 Choisis tes rôles').setDescription('Clique sur les boutons ci-dessous pour t\'attribuer ou retirer un rôle de notification ou de jeu.')], components: rows });
             await interaction.reply({ content: '✅ Menu de rôles envoyé !', ephemeral: true });
         }
 
@@ -512,15 +586,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
             const roleId = interaction.customId.replace('roletoggle_', '');
             const role = interaction.guild.roles.cache.get(roleId);
             if (!role) return interaction.reply({ content: '❌ Rôle introuvable.', ephemeral: true });
-            if (member.roles.cache.has(roleId)) { await member.roles.remove(role).catch(() => {}); await interaction.reply({ content: `➖ Rôle **${role.name}** retiré.`, ephemeral: true }); }
-            else { await member.roles.add(role).catch(() => {}); await interaction.reply({ content: `➕ Rôle **${role.name}** ajouté.`, ephemeral: true }); }
+            if (member.roles.cache.has(roleId)) { 
+                await member.roles.remove(role).catch(() => {}); 
+                await interaction.reply({ content: `➖ Rôle **${role.name}** retiré.`, ephemeral: true }); 
+            } else { 
+                await member.roles.add(role).catch(() => {}); 
+                await interaction.reply({ content: `➕ Rôle **${role.name}** ajouté.`, ephemeral: true }); 
+            }
         }
 
         // ---------- BOUTON : OUVRIR TICKET ----------
         if (interaction.isButton() && interaction.customId === 'open_ticket') {
             const guild = interaction.guild;
             const existing = guild.channels.cache.find(c => c.name === `ticket-${member.user.username.toLowerCase()}` && c.parentId === CONFIG.ticketCategoryId);
-            if (existing) return interaction.reply({ content: `❌ Ticket déjà ouvert : ${existing}`, ephemeral: true });
+            if (existing) return interaction.reply({ content: `❌ Tu as déjà un ticket ouvert : ${existing}`, ephemeral: true });
             const tc = await guild.channels.create({
                 name: `ticket-${member.user.username.toLowerCase()}`, type: ChannelType.GuildText, parent: CONFIG.ticketCategoryId,
                 permissionOverwrites: [
@@ -529,9 +608,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     { id: CONFIG.staffRoleId, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'ManageChannels'] }
                 ]
             });
-            await tc.send({ content: `${member}`, embeds: [new EmbedBuilder().setColor('#c9a961').setTitle(`🎫 Ticket de ${member.user.username}`).setDescription('Décris ton problème, l\'équipe arrive.')] });
+            await tc.send({ content: `${member}`, embeds: [new EmbedBuilder().setColor('#c9a961').setTitle(`🎫 Ticket de ${member.user.username}`).setDescription('Bonjour ! L\'équipe de support va te répondre dans les plus brefs délais.\nMerci de décrire ton problème en détail pour une prise en charge optimale.').setFooter({ text: 'Zone Gaming QC', iconURL: CONFIG.logoUrl })] });
             await interaction.reply({ content: `✅ Ticket créé : ${tc}`, ephemeral: true });
-            sendLog(guild, 'Ticket Ouvert', [{ name: 'Utilisateur', value: `${member.user}`, inline: true }, { name: 'Salon', value: `${tc}`, inline: true }]);
+            sendLog(guild, 'Ticket Ouvert', [
+                { name: 'Utilisateur', value: `${member.user}`, inline: true },
+                { name: 'Salon', value: `${tc}`, inline: true }
+            ], '#c9a961');
         }
 
         // ---------- BOUTONS CANDIDATURE ----------
@@ -539,21 +621,21 @@ client.on(Events.InteractionCreate, async (interaction) => {
             if (!member.roles.cache.has(CONFIG.staffRoleId)) return interaction.reply({ content: '❌ Permission insuffisante.', ephemeral: true });
             const ok = interaction.customId.startsWith('approve_');
             const cid = interaction.customId.split('_')[1];
-            // Ici, on pourrait ajouter une modale pour la raison, mais pour simplifier on envoie direct au webhook
             const color = ok ? 0x059669 : 0xdc2626;
             const e = new EmbedBuilder().setColor(color).setTitle(ok ? 'Candidature Approuvée !' : 'Candidature Refusée')
-                .setDescription('Ta candidature a été traitée.').addFields({ name: 'Décision', value: ok ? '✅ Acceptée' : '❌ Refusée', inline: true }, { name: 'Par', value: `${interaction.user}`, inline: true });
+                .setDescription('Ta candidature a été traitée par l\'équipe de direction.')
+                .addFields({ name: 'Décision', value: ok ? '✅ Acceptée' : '❌ Refusée', inline: true }, { name: 'Par', value: `${interaction.user}`, inline: true })
+                .setFooter({ text: 'Zone Gaming QC', iconURL: CONFIG.logoUrl }).setTimestamp();
             
-            // Envoi au webhook de réponse (si configuré)
             if (process.env.WEBHOOK_REPONSE) {
                 await fetch(process.env.WEBHOOK_REPONSE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: `<@${cid}>`, embeds: [e.toJSON()] }) }).catch(() => {});
             }
-            await interaction.reply({ content: `✅ Réponse envoyée.`, ephemeral: true });
+            await interaction.reply({ content: `✅ Réponse envoyée au candidat.`, ephemeral: true });
         }
 
     } catch (error) {
         console.error('Erreur interaction:', error);
-        if (!interaction.replied && !interaction.deferred) await interaction.reply({ content: '❌ Une erreur est survenue.', ephemeral: true }).catch(() => {});
+        if (!interaction.replied && !interaction.deferred) await interaction.reply({ content: '❌ Une erreur inattendue est survenue.', ephemeral: true }).catch(() => {});
     }
 });
 
@@ -570,7 +652,9 @@ function startBirthdayChecker() {
             for (const [uid, b] of Object.entries(data)) {
                 if (`${b.day}/${b.month}` === today) {
                     const ch = guild.channels.cache.get(CONFIG.birthdayChannelId);
-                    if (ch) await ch.send({ content: `<@${uid}>`, embeds: [new EmbedBuilder().setColor('#c9a961').setTitle('🎂 Joyeux Anniversaire !').setDescription(`Aujourd'hui c'est l'anniversaire de <@${uid}> ! 🎉`)] }).catch(() => {});
+                    if (ch) {
+                        await ch.send({ content: `<@${uid}>`, embeds: [new EmbedBuilder().setColor('#c9a961').setTitle('🎂 Joyeux Anniversaire !').setDescription(`Aujourd'hui c'est l'anniversaire de <@${uid}> ! 🎉\nToute l'équipe de Zone Gaming QC te souhaite une excellente journée remplie de bons moments et de bonnes parties !`).setFooter({ text: 'Zone Gaming QC', iconURL: CONFIG.logoUrl }).setTimestamp()] }).catch(() => {});
+                    }
                 }
             }
         }
