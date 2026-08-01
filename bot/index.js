@@ -25,7 +25,7 @@ const CONFIG = {
     goodbyeChannelId: '1531832012493688872',
     staffRoleId: '1531835193395122186',
     logsChannelId: '1531829572914511955',
-    ticketCategoryId: '1531833907438289018' // Catégorie "🎫 | CONTACT & SUPPORT"
+    ticketCategoryId: '1531833907438289018'
 };
 
 // ✅ SERVEUR HTTP POUR RENDER & API
@@ -77,7 +77,12 @@ const server = http.createServer(async (req, res) => {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({
                     success: true,
-                    user: { id: userData.id, username: userData.username, discriminator: userData.discriminator || '0', avatar: userData.avatar }
+                    user: { 
+                        id: userData.id, 
+                        username: userData.username, 
+                        discriminator: userData.discriminator || '0', 
+                        avatar: userData.avatar 
+                    }
                 }));
             } catch (error) {
                 console.error('Erreur auth Discord:', error);
@@ -123,7 +128,6 @@ const server = http.createServer(async (req, res) => {
                     .setFooter({ text: 'Zone Gaming QC | Candidature Staff' })
                     .setTimestamp();
 
-                // Les boutons sont envoyés dans le MÊME message que l'embed (limite UI de Discord)
                 const row = new ActionRowBuilder().addComponents(
                     new ButtonBuilder().setCustomId(`approve_staff_${data.discordId}`).setLabel('Approuver').setStyle(ButtonStyle.Success).setEmoji('✅'),
                     new ButtonBuilder().setCustomId(`deny_staff_${data.discordId}`).setLabel('Refuser').setStyle(ButtonStyle.Danger).setEmoji('❌')
@@ -168,10 +172,25 @@ async function registerCommands() {
         },
         { 
             name: 'setup-ticket', 
-            description: 'Envoyer le panneau de création de ticket dans un salon',
-            options: [
-                { name: 'salon', type: 7, required: true, description: 'Le salon où envoyer le panneau', channel_types: [0] }
-            ]
+            description: 'Envoyer le panneau de création de ticket',
+            options: [{ name: 'salon', type: 7, required: true, description: 'Le salon où envoyer le panneau', channel_types: [0] }]
+        },
+        { 
+            name: 'setup', 
+            description: 'Configurer les embeds professionnels du serveur',
+            options: [{ 
+                name: 'type', 
+                type: 3, 
+                required: true, 
+                description: 'Le type de configuration à envoyer',
+                choices: [
+                    { name: '📜 Règlements', value: 'rules' },
+                    { name: '🎭 Rôles & Notifications', value: 'roles' },
+                    { name: '🎫 Support / Tickets', value: 'tickets' },
+                    { name: '️ Recrutement Staff', value: 'staff' },
+                    { name: '🚀 TOUT (Recommandé)', value: 'all' }
+                ]
+            }]
         }
     ];
 
@@ -186,24 +205,129 @@ async function registerCommands() {
 client.on(Events.GuildMemberAdd, async (member) => {
     const channel = member.guild.channels.cache.get(CONFIG.welcomeChannelId);
     if (!channel) return;
-    const embed = new EmbedBuilder().setColor('#c9a961').setTitle('🎉 Bienvenue sur Zone Gaming QC !')
-        .setDescription(`Salut ${member}, ravi de te compter parmi nous !\n\n👉 Lis le <#1531831739431911486>\n Prends tes rôles dans <#1531832520016924793>`)
-        .setThumbnail(member.user.displayAvatarURL({ dynamic: true })).setFooter({ text: `Membre n°${member.guild.memberCount}` }).setTimestamp();
+    const embed = new EmbedBuilder()
+        .setColor('#c9a961')
+        .setTitle('🎉 Bienvenue sur Zone Gaming QC !')
+        .setDescription(`Salut ${member}, ravi de te compter parmi nous !\n\n Lis le <#1531831739431911486>\n Prends tes rôles dans <#1531832520016924793>`)
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+        .setFooter({ text: `Membre n°${member.guild.memberCount}` })
+        .setTimestamp();
     await channel.send({ content: `${member}`, embeds: [embed] }).catch(console.error);
 });
 
 client.on(Events.GuildMemberRemove, async (member) => {
     const channel = member.guild.channels.cache.get(CONFIG.goodbyeChannelId);
     if (!channel) return;
-    const embed = new EmbedBuilder().setColor('#dc2626').setTitle('👋 Départ')
-        .setDescription(`${member.user.tag} a quitté le serveur.`).setThumbnail(member.user.displayAvatarURL({ dynamic: true })).setTimestamp();
+    const embed = new EmbedBuilder()
+        .setColor('#dc2626')
+        .setTitle('👋 Départ')
+        .setDescription(`${member.user.tag} a quitté le serveur.`)
+        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+        .setTimestamp();
     await channel.send({ embeds: [embed] }).catch(console.error);
 });
 
 // --- INTERACTIONS & COMMANDES ---
 client.on(Events.InteractionCreate, async (interaction) => {
     try {
-        // 1. COMMANDE /SETUP-TICKET
+        // ==========================================
+        // COMMANDE /SETUP (Embeds Professionnels)
+        // ==========================================
+        if (interaction.isChatInputCommand() && interaction.commandName === 'setup') {
+            if (!interaction.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
+                return interaction.reply({ content: '❌ Tu dois avoir la permission "Gérer les salons" pour utiliser cette commande.', ephemeral: true });
+            }
+
+            const type = interaction.options.getString('type');
+            const channel = interaction.channel;
+            await interaction.deferReply({ ephemeral: true });
+
+            const websiteLink = 'https://jacobin904.github.io/Zone-Gaming-QC/';
+            const discordLink = 'https://discord.gg/d8g2eztfbM';
+
+            try {
+                if (type === 'rules' || type === 'all') {
+                    const rulesEmbed = new EmbedBuilder()
+                        .setColor('#c9a961')
+                        .setTitle(' Règlements de Zone Gaming QC')
+                        .setDescription('En rejoignant ce serveur, vous acceptez de respecter les règles suivantes. Le non-respect entraînera des sanctions.')
+                        .addFields(
+                            { name: '1️⃣ Respect & Tolérance', value: 'Insultes, harcèlement ou discrimination = BAN IMMÉDIAT.', inline: false },
+                            { name: '2️⃣ Langue', value: 'Le français est la langue principale. Évitez le langage SMS excessif.', inline: true },
+                            { name: '3️⃣ Contenu NSFW', value: 'Strictement interdit (images, liens, pseudos offensants).', inline: true },
+                            { name: '4️⃣ Spam & Publicité', value: 'Flood et pub sans accord du staff sont interdits.', inline: true },
+                            { name: '5️⃣ Vocal', value: 'Pas de cris, soundboards ou musique forte sans casque.', inline: true },
+                            { name: '6️⃣ Autorité du Staff', value: 'Les décisions sont finales. Contestation en privé uniquement.', inline: true },
+                            { name: '7️⃣ Vie Privée', value: 'Ne partagez pas vos infos personnelles ou celles des autres (doxxing).', inline: true },
+                            { name: '8️⃣ Spoilers', value: 'Utilisez la balise ||spoiler|| pour les sorties récentes.', inline: true },
+                            { name: '9️⃣ Sanctions', value: '⚠️ Avertissement ️ 🔇 Mute ➡️  Kick ➡️ 🔨 Ban.', inline: false }
+                        )
+                        .setFooter({ text: 'Zone Gaming QC', iconURL: 'https://cdn.discordapp.com/icons/1531829572453007533/c69bf91096081b8274e81a0a0eefa18e.webp?size=1024' })
+                        .setTimestamp();
+                    await channel.send({ embeds: [rulesEmbed] });
+                }
+
+                if (type === 'roles' || type === 'all') {
+                    const rolesEmbed = new EmbedBuilder()
+                        .setColor('#c9a961')
+                        .setTitle('🎭 Attribution des Rôles')
+                        .setDescription('Clique sur les boutons ci-dessous pour personnaliser ton expérience sur le serveur !')
+                        .setFooter({ text: 'Zone Gaming QC', iconURL: 'https://cdn.discordapp.com/icons/1531829572453007533/c69bf91096081b8274e81a0a0eefa18e.webp?size=1024' });
+                    
+                    const rolesRow = new ActionRowBuilder().addComponents(
+                        new ButtonBuilder().setCustomId('role_games').setLabel('🎮 Notifications Jeux').setStyle(ButtonStyle.Secondary),
+                        new ButtonBuilder().setCustomId('role_events').setLabel('🎉 Notifications Events').setStyle(ButtonStyle.Secondary),
+                        new ButtonBuilder().setCustomId('role_announcements').setLabel('📢 Notifications Annonces').setStyle(ButtonStyle.Secondary)
+                    );
+                    await channel.send({ embeds: [rolesEmbed], components: [rolesRow] });
+                }
+
+                if (type === 'tickets' || type === 'all') {
+                    const ticketEmbed = new EmbedBuilder()
+                        .setColor('#c9a961')
+                        .setTitle('🎫 Centre de Support')
+                        .setDescription('Besoin d\'aide, d\'une modération ou d\'une réponse rapide ?\nNotre équipe est là pour toi.')
+                        .addFields({ name: ' Conseil', value: 'Décris ton problème en détail lors de l\'ouverture du ticket pour une réponse plus rapide.' })
+                        .setFooter({ text: `Zone Gaming QC | Site: ${websiteLink}`, iconURL: 'https://cdn.discordapp.com/icons/1531829572453007533/c69bf91096081b8274e81a0a0eefa18e.webp?size=1024' });
+
+                    const ticketRow = new ActionRowBuilder().addComponents(
+                        new ButtonBuilder().setCustomId('open_ticket').setLabel('Ouvrir un ticket').setStyle(ButtonStyle.Primary).setEmoji('📩')
+                    );
+                    await channel.send({ embeds: [ticketEmbed], components: [ticketRow] });
+                }
+
+                if (type === 'staff' || type === 'all') {
+                    const staffEmbed = new EmbedBuilder()
+                        .setColor('#c9a961')
+                        .setTitle('🛡️ Rejoindre l\'Équipe Staff')
+                        .setDescription('Tu es motivé, mature et passionné par l\'animation de communauté ?\nNous cherchons régulièrement de nouveaux talents pour renforcer notre équipe.')
+                        .addFields(
+                            { name: '✅ Ce que nous cherchons', value: '• Maturité et esprit d\'équipe\n• Disponibilité régulière\n• Envie d\'aider la communauté' },
+                            { name: '📝 Comment postuler ?', value: 'Rends-toi sur notre site web officiel pour remplir le formulaire sécurisé.' }
+                        )
+                        .setFooter({ text: `Zone Gaming QC | Site: ${websiteLink}`, iconURL: 'https://cdn.discordapp.com/icons/1531829572453007533/c69bf91096081b8274e81a0a0eefa18e.webp?size=1024' });
+
+                    const staffRow = new ActionRowBuilder().addComponents(
+                        new ButtonBuilder()
+                            .setLabel('Postuler sur le Site Web')
+                            .setStyle(ButtonStyle.Link)
+                            .setURL('https://jacobin904.github.io/Zone-Gaming-QC/Postuler/')
+                            .setEmoji('🌐')
+                    );
+                    await channel.send({ embeds: [staffEmbed], components: [staffRow] });
+                }
+
+                await interaction.editReply({ content: `✅ Configuration **${type === 'all' ? 'complète' : type}** envoyée avec succès dans ce salon !` });
+
+            } catch (error) {
+                console.error('Erreur setup:', error);
+                await interaction.editReply({ content: '❌ Une erreur est survenue lors de l\'envoi du setup.' });
+            }
+        }
+
+        // ==========================================
+        // COMMANDE /SETUP-TICKET
+        // ==========================================
         if (interaction.isChatInputCommand() && interaction.commandName === 'setup-ticket') {
             if (!interaction.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
                 return interaction.reply({ content: '❌ Tu n\'as pas la permission d\'utiliser cette commande.', ephemeral: true });
@@ -229,26 +353,26 @@ client.on(Events.InteractionCreate, async (interaction) => {
             await interaction.reply({ content: `✅ Panneau de ticket envoyé avec succès dans ${targetChannel} !`, ephemeral: true });
         }
 
-        // 2. BOUTON OUVRIR UN TICKET
+        // ==========================================
+        // BOUTON OUVRIR UN TICKET
+        // ==========================================
         if (interaction.isButton() && interaction.customId === 'open_ticket') {
             const guild = interaction.guild;
             const member = interaction.member;
             
-            // Vérifier si l'utilisateur a déjà un ticket
             const existingChannel = guild.channels.cache.find(c => c.name === `ticket-${member.user.username.toLowerCase()}` && c.parentId === CONFIG.ticketCategoryId);
             if (existingChannel) {
                 return interaction.reply({ content: `❌ Tu as déjà un ticket ouvert : ${existingChannel}`, ephemeral: true });
             }
 
-            // Créer le salon de ticket
             const ticketChannel = await guild.channels.create({
                 name: `ticket-${member.user.username.toLowerCase()}`,
                 type: ChannelType.GuildText,
                 parent: CONFIG.ticketCategoryId,
                 permissionOverwrites: [
-                    { id: guild.id, deny: ['ViewChannel'] }, // Refuser à @everyone
-                    { id: member.user.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] }, // Autoriser l'utilisateur
-                    { id: CONFIG.staffRoleId, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'ManageChannels'] } // Autoriser le staff
+                    { id: guild.id, deny: ['ViewChannel'] },
+                    { id: member.user.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] },
+                    { id: CONFIG.staffRoleId, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'ManageChannels'] }
                 ]
             });
 
@@ -270,7 +394,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
             await interaction.reply({ content: `✅ Ton ticket a été créé : ${ticketChannel} !`, ephemeral: true });
         }
 
-        // 3. BOUTON FERMER UN TICKET
+        // ==========================================
+        // BOUTON FERMER UN TICKET
+        // ==========================================
         if (interaction.isButton() && interaction.customId === 'close_ticket') {
             if (!interaction.member.roles.cache.has(CONFIG.staffRoleId) && interaction.user.id !== interaction.channel.name.replace('ticket-', '')) {
                 return interaction.reply({ content: '❌ Seule la personne qui a ouvert le ticket ou un membre du staff peut le fermer.', ephemeral: true });
@@ -284,7 +410,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
             await interaction.reply({ content: '✅ Ticket en cours de fermeture...', ephemeral: true });
         }
 
-        // 4. BOUTONS CANDIDATURE STAFF
+        // ==========================================
+        // BOUTONS CANDIDATURE STAFF
+        // ==========================================
         if (interaction.isButton() && (interaction.customId.startsWith('approve_staff_') || interaction.customId.startsWith('deny_staff_'))) {
             if (!interaction.member.roles.cache.has(CONFIG.staffRoleId)) {
                 return interaction.reply({ content: '❌ Permission insuffisante.', ephemeral: true });
@@ -296,12 +424,19 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 .setCustomId(`response_modal_${isApprove ? 'approve' : 'deny'}_${candidateId}`)
                 .setTitle(isApprove ? '✅ Approuver la candidature' : '❌ Refuser la candidature');
 
-            const input = new TextInputBuilder().setCustomId('reason').setLabel('Raison / Commentaire').setStyle(TextInputStyle.Paragraph).setRequired(true);
+            const input = new TextInputBuilder()
+                .setCustomId('reason')
+                .setLabel('Raison / Commentaire')
+                .setStyle(TextInputStyle.Paragraph)
+                .setRequired(true);
+
             modal.addComponents(new ActionRowBuilder().addComponents(input));
             await interaction.showModal(modal);
         }
 
-        // 5. MODAL RÉPONSE STAFF
+        // ==========================================
+        // MODAL RÉPONSE STAFF
+        // ==========================================
         if (interaction.isModalSubmit() && interaction.customId.startsWith('response_modal_')) {
             const parts = interaction.customId.split('_');
             const action = parts[2]; 
@@ -312,25 +447,32 @@ client.on(Events.InteractionCreate, async (interaction) => {
             const title = action === 'approve' ? 'Candidature Approuvée !' : 'Candidature Refusée';
             
             const responseEmbed = new EmbedBuilder()
-                .setColor(color).setTitle(title)
+                .setColor(color)
+                .setTitle(title)
                 .setDescription(`Ta candidature pour le staff de **Zone Gaming QC** a été traitée.`)
                 .addFields(
                     { name: 'Décision', value: action === 'approve' ? '✅ Acceptée' : '❌ Refusée', inline: true },
                     { name: 'Traitée par', value: `${interaction.user}`, inline: true },
                     { name: 'Raison', value: reason }
-                ).setTimestamp();
+                )
+                .setTimestamp();
 
             await fetch(process.env.WEBHOOK_REPONSE, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: `<@${candidateId}>`, embeds: [responseEmbed.toJSON()] })
+                body: JSON.stringify({
+                    content: `<@${candidateId}>`,
+                    embeds: [responseEmbed.toJSON()]
+                })
             });
             
             await interaction.reply({ content: '✅ Réponse envoyée au candidat.', ephemeral: true });
             
             const logChannel = interaction.guild.channels.cache.get(CONFIG.logsChannelId);
             if (logChannel) {
-                const logEmbed = new EmbedBuilder().setColor(color).setTitle('📬 Traitement Candidature')
+                const logEmbed = new EmbedBuilder()
+                    .setColor(color)
+                    .setTitle('📬 Traitement Candidature')
                     .addFields(
                         { name: 'Action', value: action.toUpperCase(), inline: true },
                         { name: 'Staff', value: `${interaction.user}`, inline: true },
@@ -341,7 +483,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
             }
         }
 
-        // 6. COMMANDE /BAN
+        // ==========================================
+        // COMMANDE /BAN
+        // ==========================================
         if (interaction.isChatInputCommand() && interaction.commandName === 'ban') {
             if (!interaction.member.permissions.has(PermissionFlagsBits.BanMembers)) {
                 return interaction.reply({ content: '❌ Permission insuffisante.', ephemeral: true });
@@ -350,9 +494,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
             const reason = interaction.options.getString('raison') || 'Aucune raison spécifiée';
             await interaction.guild.members.ban(target, { reason });
             
-            const embed = new EmbedBuilder().setColor('#dc2626').setTitle('🔨 Bannissement')
-                .setDescription(`${target} a été banni.`).addFields({ name: 'Raison', value: reason })
-                .setFooter({ text: `Par ${interaction.user.tag}` }).setTimestamp();
+            const embed = new EmbedBuilder()
+                .setColor('#dc2626')
+                .setTitle('🔨 Bannissement')
+                .setDescription(`${target} a été banni.`)
+                .addFields({ name: 'Raison', value: reason })
+                .setFooter({ text: `Par ${interaction.user.tag}` })
+                .setTimestamp();
             await interaction.reply({ embeds: [embed] });
             
             const logChannel = interaction.guild.channels.cache.get(CONFIG.logsChannelId);
