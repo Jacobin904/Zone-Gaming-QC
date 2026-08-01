@@ -39,7 +39,7 @@ server.listen(process.env.PORT || 3000, () => {
     console.log(`🌐 Health check actif sur le port ${process.env.PORT || 3000}`);
 });
 
-client.once('ready', () => {
+client.once('clientReady', () => {
     console.log(`✅ Bot connecté : ${client.user.tag}`);
     client.user.setActivity('Zone Gaming QC', { type: 'WATCHING' });
     
