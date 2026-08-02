@@ -192,14 +192,14 @@ async function registerCommands() {
         },
         {
             name: 'annonce',
-            description: 'Créer une annonce professionnelle avec IA intégrée',
+            description: 'Créer une annonce simple et professionnelle',
             options: [
-                { name: 'sujet', type: 3, required: true, description: 'Le sujet de l\'annonce' },
-                { name: 'type', type: 3, required: true, description: 'Type d\'annonce', choices: [
+                { name: 'titre', type: 3, required: true, description: 'Le titre de l\'annonce' },
+                { name: 'message', type: 3, required: true, description: 'Le contenu de l\'annonce' },
+                { name: 'type', type: 3, required: true, description: 'Cible de l\'annonce', choices: [
                     { name: '📢 Public', value: 'public' },
                     { name: '🔒 Staff', value: 'staff' }
-                ]},
-                { name: 'details', type: 3, required: false, description: 'Détails supplémentaires' }
+                ]}
             ]
         },
         {
@@ -222,13 +222,10 @@ async function registerCommands() {
                     { name: '🤝 Partenariats', value: 'partenariats' },
                     { name: '🎭 Rôles', value: 'roles' },
                     { name: '🎫 Tickets', value: 'tickets' },
-                    { name: '🛡️ Staff', value: 'staff' }
+                    { name: '🛡️ Staff', value: 'staff' },
+                    { name: '✅ Vérification', value: 'verify' }
                 ]}
             ]
-        },
-        {
-            name: 'setup-verify',
-            description: 'Envoyer le panneau de vérification humaine'
         },
         {
             name: 'clear',
@@ -244,14 +241,6 @@ async function registerCommands() {
         {
             name: 'unlock',
             description: 'Déverrouiller le salon'
-        },
-        {
-            name: 'translate',
-            description: 'Traduire un texte',
-            options: [
-                { name: 'texte', type: 3, required: true, description: 'Le texte à traduire' },
-                { name: 'langue', type: 3, required: true, description: 'Langue cible (ex: en, es, it)' }
-            ]
         }
     ];
     
@@ -316,6 +305,95 @@ client.on(Events.ChannelDelete, async (channel) => {
         { name: 'Nom', value: channel.name, inline: true },
         { name: 'ID', value: channel.id, inline: true }
     ], CONFIG.primaryRed, `chan_del_${channel.id}`);
+});
+
+// ============================================================
+// INTELLIGENCE ARTIFICIELLE (Réponse au ping)
+// ============================================================
+client.on(Events.MessageCreate, async (message) => {
+    if (message.author.bot || !message.guild) return;
+    
+    // Vérifier si le bot est mentionné
+    if (message.mentions.has(client.user)) {
+        // Ignorer si c'est juste le ping sans texte
+        const cleanContent = message.content.replace(`<@${client.user.id}>`, '').replace(`<@!${client.user.id}>`, '').trim();
+        if (!cleanContent) return;
+
+        // Typing indicator
+        await message.channel.sendTyping();
+
+        try {
+            // Récupérer les 15 derniers messages pour le contexte
+            const messages = await message.channel.messages.fetch({ limit: 15 });
+            const contextArray = [];
+            messages.reverse().forEach(m => {
+                if (m.content && !m.author.bot) {
+                    contextArray.push(`${m.author.username}: ${m.content}`);
+                }
+            });
+            const context = contextArray.join('\n');
+
+            const systemPrompt = `Tu es l'assistant IA officiel et amical du serveur Discord "Zone Gaming QC". 
+            Tu es un expert en gaming, communauté québécoise, et modération.
+            RÈGLES À CONNAÎTRE ABSOLUMENT : 
+            1. Respect et tolérance absolus (pas d'insultes, racisme, etc.).
+            2. Français obligatoire (anglais toléré mais minoritaire).
+            3. Pas de contenu NSFW ou de spam.
+            4. Les sanctions sont progressives : Warn -> Mute -> Kick -> Ban.
+            
+            CONTEXTE RÉCENT DU SALON (pour t'aider à comprendre la conversation) :
+            ${context}
+
+            L'utilisateur ${message.author.username} te demande : "${cleanContent}"
+            
+            Règles de réponse :
+            - Réponds en français, de manière naturelle, concise et utile.
+            - Si on te demande une info sur le serveur, base-toi sur les règles ci-dessus.
+            - Ne mentionne pas que tu es une IA ou que tu lis l'historique, agis comme un membre du staff virtuel serviable.
+            - Maximum 3-4 phrases.`;
+
+            // Appel à l'API IA (Compatible OpenAI / Groq)
+            // Pour Groq (gratuit et rapide) : https://api.groq.com/openai/v1/chat/completions
+            // Pour OpenAI : https://api.openai.com/v1/chat/completions
+            const apiUrl = process.env.AI_API_URL || 'https://api.groq.com/openai/v1/chat/completions';
+            const apiKey = process.env.AI_API_KEY;
+            const model = process.env.AI_MODEL || 'llama3-8b-8192';
+
+            if (!apiKey) {
+                return message.reply('⚠️ L\'IA n\'est pas configurée. Le propriétaire doit ajouter la variable `AI_API_KEY` sur Render.');
+            }
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: model,
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: cleanContent }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 300
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.choices && data.choices[0]) {
+                const aiResponse = data.choices[0].message.content;
+                await message.reply(aiResponse);
+            } else {
+                throw new Error(data.error?.message || 'Réponse invalide de l\'IA');
+            }
+
+        } catch (error) {
+            console.error('Erreur IA:', error);
+            await message.reply('❌ Désolé, je n\'arrive pas à répondre pour le moment. Réessaie plus tard !');
+        }
+    }
 });
 
 // ============================================================
@@ -384,18 +462,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
             }
         }
 
-        // ---------- /ANNONCE ----------
+        // ---------- /ANNONCE (Simplifiée) ----------
         if (interaction.isChatInputCommand() && interaction.commandName === 'annonce') {
             if (!member.roles.cache.has(CONFIG.staffRoleId)) return interaction.reply({ content: '❌ Réservé au staff.', ephemeral: true });
-            const sujet = interaction.options.getString('sujet');
+            const titre = interaction.options.getString('titre');
+            const message = interaction.options.getString('message');
             const type = interaction.options.getString('type');
-            const details = interaction.options.getString('details') || '';
             await interaction.deferReply({ ephemeral: true });
             
             const embed = new EmbedBuilder()
                 .setColor(CONFIG.gold)
-                .setTitle(`📢 ${sujet}`)
-                .setDescription(details || 'Annonce importante de l\'équipe.')
+                .setTitle(`📢 ${titre}`)
+                .setDescription(message)
                 .setFooter({ text: 'Zone Gaming QC • Annonce Officielle', iconURL: CONFIG.logoUrl })
                 .setTimestamp();
             
@@ -546,6 +624,19 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 
                 await channel.send({ content: null, embeds: [staffEmbed], components: [row] });
                 await interaction.editReply({ content: '✅ Embed staff envoyé !' });
+
+            } else if (option === 'verify') {
+                const verifyEmbed = new EmbedBuilder()
+                    .setColor('#059669')
+                    .setTitle('🛡️ Vérification de Sécurité')
+                    .setDescription('Bienvenue sur **Zone Gaming QC** !\n\nPour accéder à l\'ensemble du serveur et protéger notre communauté, une vérification simple est requise.\n\n👇 **Clique sur le bouton ci-dessous** pour obtenir ton rôle de membre.')
+                    .setFooter({ text: 'Zone Gaming QC • Sécurité', iconURL: CONFIG.logoUrl })
+                    .setTimestamp();
+                const row = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder().setCustomId('verify_human').setLabel('Je suis humain').setStyle(ButtonStyle.Success).setEmoji('✅')
+                );
+                await channel.send({ content: null, embeds: [verifyEmbed], components: [row] });
+                await interaction.editReply({ content: '✅ Panneau de vérification envoyé !' });
             }
         }
 
@@ -560,21 +651,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 'suggestions': { content: '💡 **Suggestions**\nOuvrez un ticket avec le sujet "Suggestion".', ephemeral: true }
             };
             await interaction.reply(responses[interaction.values[0]] || { content: '❌ Option invalide.', ephemeral: true });
-        }
-
-        // ---------- /SETUP-VERIFY ----------
-        if (interaction.isChatInputCommand() && interaction.commandName === 'setup-verify') {
-            if (!member.permissions.has(PermissionFlagsBits.ManageChannels)) return interaction.reply({ content: '❌ Permission requise.', ephemeral: true });
-            const embed = new EmbedBuilder()
-                .setColor('#059669')
-                .setTitle('🛡️ Vérification de Sécurité')
-                .setDescription('Cliquez ci-dessous pour accéder au serveur.')
-                .setFooter({ text: 'Zone Gaming QC', iconURL: CONFIG.logoUrl });
-            const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder().setCustomId('verify_human').setLabel('Je suis humain').setStyle(ButtonStyle.Success).setEmoji('✅')
-            );
-            await interaction.channel.send({ content: null, embeds: [embed], components: [row] });
-            await interaction.reply({ content: '✅ Panneau envoyé !', ephemeral: true });
         }
 
         // ---------- BOUTON VÉRIFICATION ----------
@@ -650,19 +726,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
             const lock = interaction.commandName === 'lock';
             await interaction.channel.permissionOverwrites.edit(interaction.guild.id, { SendMessages: !lock });
             await interaction.reply({ content: lock ? '🔒 Verrouillé.' : '🔓 Déverrouillé.', ephemeral: true });
-        }
-
-        // ---------- /TRANSLATE ----------
-        if (interaction.isChatInputCommand() && interaction.commandName === 'translate') {
-            const text = interaction.options.getString('texte');
-            const lang = interaction.options.getString('langue');
-            await interaction.deferReply();
-            try {
-                const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|${lang}`);
-                const j = await r.json();
-                const tr = j?.responseData?.translatedText || 'Indisponible.';
-                await interaction.editReply({ embeds: [new EmbedBuilder().setColor(CONFIG.gold).setTitle('🌐 Traduction').addFields({ name: 'Original', value: text.substring(0, 500) }, { name: 'Traduit', value: tr.substring(0, 500) })] });
-            } catch (e) { await interaction.editReply({ content: '❌ Erreur.' }); }
         }
 
     } catch (error) {
