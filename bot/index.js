@@ -5,7 +5,7 @@ const {
 const http = require('http');
 
 if (!process.env.TOKEN || !process.env.CLIENT_ID || !process.env.GUILD_ID || !process.env.DISCORD_CLIENT_SECRET) {
-    console.error(' Variables manquantes sur Render !');
+    console.error('❌ Variables manquantes sur Render !');
     process.exit(1);
 }
 
@@ -30,7 +30,6 @@ const CONFIG = {
     unverifiedRoleId: '1532905582175191120',
     memberRoleId: '1531832874599448666',
     logoUrl: 'https://cdn.discordapp.com/icons/1531829572453007533/c69bf91096081b8274e81a0a0eefa18e.webp?size=1024',
-    // Couleurs personnalisées
     primaryBlue: '#42749e',
     primaryRed: '#b74752',
     gold: '#c9a961'
@@ -77,8 +76,10 @@ async function sendLog(guild, title, fields, color = CONFIG.gold, eventId = null
         .addFields(fields)
         .setFooter({ text: 'Zone Gaming QC • Système de Logs', iconURL: CONFIG.logoUrl })
         .setTimestamp();
+    
     const logCh = guild.channels.cache.get(CONFIG.logsChannelId);
     if (logCh) await logCh.send({ embeds: [embed] }).catch(() => {});
+    
     const dbCh = await getDbChannel(guild);
     if (dbCh) {
         const logEntry = `**[${new Date().toLocaleTimeString('fr-FR')}]** ${title}\n${fields.map(f => `• **${f.name}:** ${f.value}`).join('\n')}\n─────────────────`;
@@ -97,15 +98,19 @@ const server = http.createServer(async (req, res) => {
     if (req.url === '/health') { res.writeHead(200); res.end('OK'); return; }
 
     if (req.url === '/api/auth/discord' && req.method === 'POST') {
-        let body = ''; req.on('data', c => body += c);
+        let body = ''; 
+        req.on('data', c => body += c);
         req.on('end', async () => {
             try {
                 const { code } = JSON.parse(body);
                 const tr = await fetch('https://discord.com/api/oauth2/token', {
-                    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: new URLSearchParams({
-                        client_id: process.env.CLIENT_ID, client_secret: process.env.DISCORD_CLIENT_SECRET,
-                        grant_type: 'authorization_code', code,
+                        client_id: process.env.CLIENT_ID, 
+                        client_secret: process.env.DISCORD_CLIENT_SECRET,
+                        grant_type: 'authorization_code', 
+                        code: code,
                         redirect_uri: 'https://jacobin904.github.io/Zone-Gaming-QC/Postuler/callback.html'
                     })
                 });
@@ -124,7 +129,8 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.url === '/api/candidature' && req.method === 'POST') {
-        let body = ''; req.on('data', c => body += c);
+        let body = ''; 
+        req.on('data', c => body += c);
         req.on('end', async () => {
             try {
                 if (!client.isReady()) { res.writeHead(503); res.end('Bot pas prêt'); return; }
@@ -132,6 +138,7 @@ const server = http.createServer(async (req, res) => {
                 const guild = client.guilds.cache.get(process.env.GUILD_ID);
                 const staffChannel = guild.channels.cache.get(CONFIG.candidatureChannelId) || guild.channels.cache.find(c => c.name === 'candidatures-staff');
                 if (!staffChannel) { res.writeHead(500); res.end('Salon staff introuvable'); return; }
+                
                 const typeLabel = data.candidatureType || 'Staff';
                 const embed = new EmbedBuilder().setColor(CONFIG.gold).setTitle(`📋 Nouvelle Candidature : ${typeLabel}`)
                     .setDescription(`**Candidat:** ${data.discordPseudo}\n**ID:** \`${data.discordId}\``)
@@ -140,6 +147,7 @@ const server = http.createServer(async (req, res) => {
                         { name: 'Expérience', value: (data.experience || '').substring(0, 1024), inline: false },
                         { name: 'Motivation', value: (data.motivation || '').substring(0, 1024), inline: false }
                     ).setFooter({ text: 'Zone Gaming QC', iconURL: CONFIG.logoUrl }).setTimestamp();
+                
                 const row = new ActionRowBuilder().addComponents(
                     new ButtonBuilder().setCustomId(`approve_${data.discordId}`).setLabel('Approuver').setStyle(ButtonStyle.Success).setEmoji('✅'),
                     new ButtonBuilder().setCustomId(`deny_${data.discordId}`).setLabel('Refuser').setStyle(ButtonStyle.Danger).setEmoji('❌')
@@ -152,6 +160,7 @@ const server = http.createServer(async (req, res) => {
     }
     res.writeHead(404); res.end();
 });
+
 server.listen(process.env.PORT || 3000, () => console.log(`🌐 API + health sur port ${process.env.PORT || 3000}`));
 
 // ============================================================
@@ -165,44 +174,93 @@ client.once('clientReady', () => {
 
 async function registerCommands() {
     const commands = [
-        { name: 'sanction', description: 'Appliquer une sanction à un membre', options: [
-            { name: 'type', type: 3, required: true, description: 'Type de sanction', choices: [
-                { name: '🔨 Ban', value: 'ban' }, { name: '🚪 Kick', value: 'kick' },
-                { name: ' Mute', value: 'mute' }, { name: '🔊 Unmute', value: 'unmute' },
-                { name: '️ Warn', value: 'warn' }] },
-            { name: 'utilisateur', type: 6, required: true, description: 'Le membre à sanctionner' },
-            { name: 'raison', type: 3, required: true, description: 'La raison de la sanction' },
-            { name: 'duree_minutes', type: 4, required: false, description: 'Durée (uniquement pour mute)' }] },
-        { name: 'annonce', description: 'Créer une annonce professionnelle avec IA intégrée', options: [
-            { name: 'sujet', type: 3, required: true, description: 'Le sujet de l\'annonce' },
-            { name: 'type', type: 3, required: true, description: 'Type d\'annonce', choices: [
-                { name: '📢 Public', value: 'public' },
-                { name: '🔒 Staff', value: 'staff' }] },
-            { name: 'details', type: 3, required: false, description: 'Détails supplémentaires' }] },
-        { name: 'sondage', description: 'Créer un sondage interactif', options: [
-            { name: 'question', type: 3, required: true, description: 'La question du sondage' },
-            { name: 'option1', type: 3, required: true, description: 'Première option' },
-            { name: 'option2', type: 3, required: true, description: 'Deuxième option' },
-            { name: 'option3', type: 3, required: false, description: 'Troisième option' },
-            { name: 'option4', type: 3, required: false, description: 'Quatrième option' }] },
-        { name: 'setup', description: 'Envoyer un embed de configuration (choisir une option)', options: [
-            { name: 'option', type: 3, required: true, description: 'Type d\'embed à envoyer', choices: [
-                { name: '📜 Règlements', value: 'reglements' },
-                { name: ' Partenariats', value: 'partenariats' },
-                { name: ' Rôles', value: 'roles' },
-                { name: '🎫 Tickets', value: 'tickets' },
-                { name: '🛡️ Staff', value: 'staff' }] }],
-        { name: 'setup-verify', description: 'Envoyer le panneau de vérification humaine' },
-        { name: 'clear', description: 'Supprimer des messages', options: [
-            { name: 'nombre', type: 4, required: true, description: 'Nombre de messages (1-100)' }] },
-        { name: 'lock', description: 'Verrouiller le salon' },
-        { name: 'unlock', description: 'Déverrouiller le salon' },
-        { name: 'translate', description: 'Traduire un texte', options: [
-            { name: 'texte', type: 3, required: true, description: 'Le texte à traduire' },
-            { name: 'langue', type: 3, required: true, description: 'Langue cible (ex: en, es, it)' }] }
+        {
+            name: 'sanction',
+            description: 'Appliquer une sanction à un membre',
+            options: [
+                { name: 'type', type: 3, required: true, description: 'Type de sanction', choices: [
+                    { name: '🔨 Ban', value: 'ban' },
+                    { name: '🚪 Kick', value: 'kick' },
+                    { name: '🔇 Mute', value: 'mute' },
+                    { name: '🔊 Unmute', value: 'unmute' },
+                    { name: '⚠️ Warn', value: 'warn' }
+                ]},
+                { name: 'utilisateur', type: 6, required: true, description: 'Le membre à sanctionner' },
+                { name: 'raison', type: 3, required: true, description: 'La raison de la sanction' },
+                { name: 'duree_minutes', type: 4, required: false, description: 'Durée (uniquement pour mute)' }
+            ]
+        },
+        {
+            name: 'annonce',
+            description: 'Créer une annonce professionnelle avec IA intégrée',
+            options: [
+                { name: 'sujet', type: 3, required: true, description: 'Le sujet de l\'annonce' },
+                { name: 'type', type: 3, required: true, description: 'Type d\'annonce', choices: [
+                    { name: '📢 Public', value: 'public' },
+                    { name: '🔒 Staff', value: 'staff' }
+                ]},
+                { name: 'details', type: 3, required: false, description: 'Détails supplémentaires' }
+            ]
+        },
+        {
+            name: 'sondage',
+            description: 'Créer un sondage interactif',
+            options: [
+                { name: 'question', type: 3, required: true, description: 'La question du sondage' },
+                { name: 'option1', type: 3, required: true, description: 'Première option' },
+                { name: 'option2', type: 3, required: true, description: 'Deuxième option' },
+                { name: 'option3', type: 3, required: false, description: 'Troisième option' },
+                { name: 'option4', type: 3, required: false, description: 'Quatrième option' }
+            ]
+        },
+        {
+            name: 'setup',
+            description: 'Envoyer un embed de configuration (choisir une option)',
+            options: [
+                { name: 'option', type: 3, required: true, description: 'Type d\'embed à envoyer', choices: [
+                    { name: '📜 Règlements', value: 'reglements' },
+                    { name: '🤝 Partenariats', value: 'partenariats' },
+                    { name: '🎭 Rôles', value: 'roles' },
+                    { name: '🎫 Tickets', value: 'tickets' },
+                    { name: '🛡️ Staff', value: 'staff' }
+                ]}
+            ]
+        },
+        {
+            name: 'setup-verify',
+            description: 'Envoyer le panneau de vérification humaine'
+        },
+        {
+            name: 'clear',
+            description: 'Supprimer des messages',
+            options: [
+                { name: 'nombre', type: 4, required: true, description: 'Nombre de messages (1-100)' }
+            ]
+        },
+        {
+            name: 'lock',
+            description: 'Verrouiller le salon'
+        },
+        {
+            name: 'unlock',
+            description: 'Déverrouiller le salon'
+        },
+        {
+            name: 'translate',
+            description: 'Traduire un texte',
+            options: [
+                { name: 'texte', type: 3, required: true, description: 'Le texte à traduire' },
+                { name: 'langue', type: 3, required: true, description: 'Langue cible (ex: en, es, it)' }
+            ]
+        }
     ];
-    try { await client.application.commands.set(commands); console.log('✅ Commandes enregistrées !'); }
-    catch (e) { console.error('❌ Erreur commandes:', e); }
+    
+    try { 
+        await client.application.commands.set(commands); 
+        console.log('✅ Commandes enregistrées !'); 
+    } catch (e) { 
+        console.error('❌ Erreur commandes:', e); 
+    }
 }
 
 // ============================================================
@@ -289,7 +347,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 const targetMember = interaction.options.getMember('utilisateur');
                 if (!targetMember) return interaction.reply({ content: '❌ Membre introuvable.', ephemeral: true });
                 await targetMember.kick(reason).catch(() => {});
-                await interaction.reply({ content: ` ${targetMember.user.tag} a été expulsé.`, ephemeral: true });
+                await interaction.reply({ content: `🚪 ${targetMember.user.tag} a été expulsé.`, ephemeral: true });
                 sendLog(interaction.guild, 'Sanction: Kick', [
                     { name: 'Cible', value: `${targetMember.user.tag} (\`${targetMember.id}\`)`, inline: true },
                     { name: 'Modérateur', value: `${interaction.user.tag}`, inline: true },
@@ -297,8 +355,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 ], '#d97706', `sanction_kick_${targetMember.id}`);
             } else if (type === 'mute') {
                 const targetMember = interaction.options.getMember('utilisateur');
-                if (!targetMember || !targetMember.moderatable) return interaction.reply({ content: ' Impossible de mute.', ephemeral: true });
-                if (!duration) return interaction.reply({ content: ' Durée requise.', ephemeral: true });
+                if (!targetMember || !targetMember.moderatable) return interaction.reply({ content: '❌ Impossible de mute.', ephemeral: true });
+                if (!duration) return interaction.reply({ content: '❌ Durée requise.', ephemeral: true });
                 await targetMember.timeout(duration * 60 * 1000, reason).catch(() => {});
                 await interaction.reply({ content: `🔇 ${targetMember.user.tag} mute ${duration} min.`, ephemeral: true });
                 sendLog(interaction.guild, 'Sanction: Mute', [
@@ -328,7 +386,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         // ---------- /ANNONCE ----------
         if (interaction.isChatInputCommand() && interaction.commandName === 'annonce') {
-            if (!member.roles.cache.has(CONFIG.staffRoleId)) return interaction.reply({ content: ' Réservé au staff.', ephemeral: true });
+            if (!member.roles.cache.has(CONFIG.staffRoleId)) return interaction.reply({ content: '❌ Réservé au staff.', ephemeral: true });
             const sujet = interaction.options.getString('sujet');
             const type = interaction.options.getString('type');
             const details = interaction.options.getString('details') || '';
@@ -358,7 +416,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         // ---------- /SONDAGE ----------
         if (interaction.isChatInputCommand() && interaction.commandName === 'sondage') {
-            if (!member.roles.cache.has(CONFIG.staffRoleId)) return interaction.reply({ content: ' Réservé au staff.', ephemeral: true });
+            if (!member.roles.cache.has(CONFIG.staffRoleId)) return interaction.reply({ content: '❌ Réservé au staff.', ephemeral: true });
             const question = interaction.options.getString('question');
             const options = [];
             for (let i = 1; i <= 4; i++) {
@@ -367,11 +425,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
             }
             if (options.length < 2) return interaction.reply({ content: '❌ 2 options min.', ephemeral: true });
             
-            const emojis = ['1️', '2️⃣', '3️⃣', '4️⃣'];
+            const emojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣'];
             const optionsText = options.map((opt, i) => `${emojis[i]} **${opt}**`).join('\n');
             const embed = new EmbedBuilder()
                 .setColor(CONFIG.gold)
-                .setTitle(' Sondage')
+                .setTitle('📊 Sondage')
                 .setDescription(`**${question}**\n\n${optionsText}`)
                 .setFooter({ text: 'Zone Gaming QC', iconURL: CONFIG.logoUrl });
             
@@ -380,7 +438,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             await interaction.reply({ content: '✅ Sondage créé !', ephemeral: true });
         }
 
-        // ---------- /SETUP (Options séparées) ----------
+        // ---------- /SETUP ----------
         if (interaction.isChatInputCommand() && interaction.commandName === 'setup') {
             if (!member.permissions.has(PermissionFlagsBits.ManageChannels)) return interaction.reply({ content: '❌ Permission requise.', ephemeral: true });
             await interaction.deferReply({ ephemeral: true });
@@ -389,7 +447,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
             const site = 'https://jacobin904.github.io/Zone-Gaming-QC/';
             
             if (option === 'reglements') {
-                // Menu déroulant pour le footer
                 const selectMenu = new StringSelectMenuBuilder()
                     .setCustomId('reglements_menu')
                     .setPlaceholder('🔗 Accéder aux ressources...')
@@ -446,7 +503,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 
                 const row = new ActionRowBuilder().addComponents(
                     new ButtonBuilder().setCustomId('role_games').setLabel('🎮 Notifs Jeux').setStyle(ButtonStyle.Secondary),
-                    new ButtonBuilder().setCustomId('role_events').setLabel(' Notifs Events').setStyle(ButtonStyle.Secondary),
+                    new ButtonBuilder().setCustomId('role_events').setLabel('🎉 Notifs Events').setStyle(ButtonStyle.Secondary),
                     new ButtonBuilder().setCustomId('role_announcements').setLabel('📢 Notifs Annonces').setStyle(ButtonStyle.Secondary)
                 );
                 
@@ -456,7 +513,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             } else if (option === 'tickets') {
                 const ticketsEmbed = new EmbedBuilder()
                     .setColor(CONFIG.primaryBlue)
-                    .setTitle(' CENTRE DE SUPPORT')
+                    .setTitle('🎫 CENTRE DE SUPPORT')
                     .setDescription('Besoin d\'aide ? Notre équipe est là pour vous.')
                     .addFields(
                         { name: '💡 Comment ça marche ?', value: '1. Cliquez sur le bouton ci-dessous\n2. Un salon privé sera créé\n3. Décrivez votre problème\n4. Un staff vous répondra', inline: false },
@@ -498,16 +555,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
             const responses = {
                 'website': { content: '🌐 **Site Web Officiel**\nVisitez: ' + site, ephemeral: true },
                 'contact': { content: '📧 **Contact**\nOuvrez un ticket ou contactez un staff.', ephemeral: true },
-                'staff_apply': { content: '️ **Postuler au Staff**\nRendez-vous sur: ' + site + 'Postuler/', ephemeral: true },
-                'bug_report': { content: ' **Signaler un Bug**\nOuvrez un ticket avec le sujet "Bug".', ephemeral: true },
+                'staff_apply': { content: '🛡️ **Postuler au Staff**\nRendez-vous sur: ' + site + 'Postuler/', ephemeral: true },
+                'bug_report': { content: '🐛 **Signaler un Bug**\nOuvrez un ticket avec le sujet "Bug".', ephemeral: true },
                 'suggestions': { content: '💡 **Suggestions**\nOuvrez un ticket avec le sujet "Suggestion".', ephemeral: true }
             };
-            await interaction.reply(responses[interaction.values[0]] || { content: ' Option invalide.', ephemeral: true });
+            await interaction.reply(responses[interaction.values[0]] || { content: '❌ Option invalide.', ephemeral: true });
         }
 
         // ---------- /SETUP-VERIFY ----------
         if (interaction.isChatInputCommand() && interaction.commandName === 'setup-verify') {
-            if (!member.permissions.has(PermissionFlagsBits.ManageChannels)) return interaction.reply({ content: ' Permission requise.', ephemeral: true });
+            if (!member.permissions.has(PermissionFlagsBits.ManageChannels)) return interaction.reply({ content: '❌ Permission requise.', ephemeral: true });
             const embed = new EmbedBuilder()
                 .setColor('#059669')
                 .setTitle('🛡️ Vérification de Sécurité')
@@ -543,7 +600,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 await interaction.reply({ content: '➖ Rôle retiré.', ephemeral: true });
             } else {
                 await member.roles.add(role);
-                await interaction.reply({ content: ' Rôle ajouté.', ephemeral: true });
+                await interaction.reply({ content: '➕ Rôle ajouté.', ephemeral: true });
             }
         }
 
@@ -592,7 +649,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             if (!member.permissions.has(PermissionFlagsBits.ManageChannels)) return interaction.reply({ content: '❌ Permission requise.', ephemeral: true });
             const lock = interaction.commandName === 'lock';
             await interaction.channel.permissionOverwrites.edit(interaction.guild.id, { SendMessages: !lock });
-            await interaction.reply({ content: lock ? ' Verrouillé.' : ' Déverrouillé.', ephemeral: true });
+            await interaction.reply({ content: lock ? '🔒 Verrouillé.' : '🔓 Déverrouillé.', ephemeral: true });
         }
 
         // ---------- /TRANSLATE ----------
@@ -610,7 +667,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     } catch (error) {
         console.error('Erreur:', error);
-        if (!interaction.replied && !interaction.deferred) await interaction.reply({ content: ' Erreur.', ephemeral: true }).catch(() => {});
+        if (!interaction.replied && !interaction.deferred) await interaction.reply({ content: '❌ Erreur.', ephemeral: true }).catch(() => {});
     }
 });
 
