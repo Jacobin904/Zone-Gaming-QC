@@ -357,8 +357,8 @@ client.on(Events.MessageCreate, async (message) => {
             // Pour OpenAI : https://api.openai.com/v1/chat/completions
             const apiUrl = process.env.AI_API_URL || 'https://api.groq.com/openai/v1/chat/completions';
             const apiKey = process.env.AI_API_KEY;
-            const model = process.env.AI_MODEL || 'llama3-8b-8192';
-
+            const model = process.env.AI_MODEL || 'llama-3.1-8b-instant';
+            
             if (!apiKey) {
                 return message.reply('⚠️ L\'IA n\'est pas configurée. Le propriétaire doit ajouter la variable `AI_API_KEY` sur Render.');
             }
