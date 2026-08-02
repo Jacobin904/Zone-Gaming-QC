@@ -27,6 +27,7 @@ const CONFIG = {
     candidatureChannelId: '1533106862386446468',
     reglementsChannelId: '1531831739431911486',
     generalChannelId: '1531833131823267901',
+    aiChannelId: '1533573265014919198', // Salon dédié à l'IA
     unverifiedRoleId: '1532905582175191120',
     memberRoleId: '1531832874599448666',
     logoUrl: 'https://cdn.discordapp.com/icons/1531829572453007533/c69bf91096081b8274e81a0a0eefa18e.webp?size=1024',
@@ -34,6 +35,31 @@ const CONFIG = {
     primaryRed: '#b74752',
     gold: '#c9a961'
 };
+
+// ============================================================
+// MÉMOIRE DE CONVERSATION (Par utilisateur)
+// ============================================================
+const conversationHistory = new Map(); // userId -> array of messages
+
+function addToHistory(userId, message) {
+    if (!conversationHistory.has(userId)) {
+        conversationHistory.set(userId, []);
+    }
+    const history = conversationHistory.get(userId);
+    history.push({
+        content: message,
+        timestamp: Date.now()
+    });
+    // Garder seulement les 20 derniers messages par utilisateur
+    if (history.length > 20) {
+        history.shift();
+    }
+}
+
+function getHistory(userId) {
+    const history = conversationHistory.get(userId) || [];
+    return history.map(h => h.content).join('\n');
+}
 
 // ============================================================
 // ANTI-DOUBLON LOGS
@@ -221,7 +247,7 @@ async function registerCommands() {
                     { name: '📜 Règlements', value: 'reglements' },
                     { name: ' Partenariats', value: 'partenariats' },
                     { name: ' Rôles', value: 'roles' },
-                    { name: '🎫 Tickets', value: 'tickets' },
+                    { name: ' Tickets', value: 'tickets' },
                     { name: '🛡️ Staff', value: 'staff' },
                     { name: '✅ Vérification', value: 'verify' }
                 ]}
@@ -308,64 +334,82 @@ client.on(Events.ChannelDelete, async (channel) => {
 });
 
 // ============================================================
-// INTELLIGENCE ARTIFICIELLE HUMAINE ET IMMERSIVE
+// INTELLIGENCE ARTIFICIELLE AVEC MÉMOIRE
 // ============================================================
 client.on(Events.MessageCreate, async (message) => {
     if (message.author.bot || !message.guild) return;
     
-    // Vérifier si le bot est mentionné
-    if (message.mentions.has(client.user)) {
-        // Ignorer si c'est juste le ping sans texte
-        const cleanContent = message.content.replace(`<@${client.user.id}>`, '').replace(`<@!${client.user.id}>`, '').trim();
-        if (!cleanContent) return;
+    // Ignorer les messages trop courts
+    if (message.content.length < 3) return;
+    
+    const isAiChannel = message.channel.id === CONFIG.aiChannelId;
+    const isMentioned = message.mentions.has(client.user);
+    
+    // Le bot répond si :
+    // 1. C'est le salon IA dédié (sans besoin de ping)
+    // 2. OU si le bot est mentionné dans un autre salon
+    if (!isAiChannel && !isMentioned) return;
+    
+    // Si c'est le salon IA, on enlève la mention si elle existe
+    let cleanContent = message.content;
+    if (isAiChannel) {
+        cleanContent = cleanContent.replace(`<@${client.user.id}>`, '').replace(`<@!${client.user.id}>`, '').trim();
+    } else {
+        cleanContent = cleanContent.replace(`<@${client.user.id}>`, '').replace(`<@!${client.user.id}>`, '').trim();
+    }
+    
+    if (!cleanContent) return;
 
-        // Typing indicator pour paraître plus humain
-        await message.channel.sendTyping();
+    // Typing indicator
+    await message.channel.sendTyping();
 
-        try {
-            // Récupérer les 50 derniers messages pour un contexte riche
-            const messages = await message.channel.messages.fetch({ limit: 50 });
-            const contextArray = [];
+    try {
+        // Récupérer les 50 derniers messages du salon
+        const messages = await message.channel.messages.fetch({ limit: 50 });
+        const contextArray = [];
+        
+        messages.reverse().forEach(m => {
+            if (m.author.bot) return;
             
-            messages.reverse().forEach(m => {
-                if (m.author.bot) return;
-                
-                let messageText = `${m.author.username}: ${m.content}`;
-                
-                // Ajouter les informations des embeds
-                if (m.embeds.length > 0) {
-                    m.embeds.forEach(embed => {
-                        if (embed.title) messageText += ` [Embed: ${embed.title}]`;
-                        if (embed.description) messageText += ` - ${embed.description.substring(0, 100)}`;
-                    });
-                }
-                
-                // Ajouter les informations des pièces jointes
-                if (m.attachments.size > 0) {
-                    const files = m.attachments.map(a => a.name).join(', ');
-                    messageText += ` [Fichiers: ${files}]`;
-                }
-                
-                // Ajouter les réactions
-                if (m.reactions.cache.size > 0) {
-                    const reactions = m.reactions.cache.map(r => `${r.emoji}x${r.count}`).join(' ');
-                    messageText += ` [Réactions: ${reactions}]`;
-                }
-                
-                contextArray.push(messageText);
-            });
+            let messageText = `${m.author.username}: ${m.content}`;
             
-            const context = contextArray.join('\n');
+            // Ajouter les informations des embeds
+            if (m.embeds.length > 0) {
+                m.embeds.forEach(embed => {
+                    if (embed.title) messageText += ` [Embed: ${embed.title}]`;
+                    if (embed.description) messageText += ` - ${embed.description.substring(0, 100)}`;
+                });
+            }
             
-            // Informations sur le serveur
-            const guildInfo = {
-                name: message.guild.name,
-                memberCount: message.guild.memberCount,
-                channels: message.guild.channels.cache.filter(c => c.type === ChannelType.GuildText).map(c => c.name).join(', '),
-                roles: message.guild.roles.cache.map(r => r.name).filter(r => r !== '@everyone').join(', ')
-            };
+            // Ajouter les informations des pièces jointes
+            if (m.attachments.size > 0) {
+                const files = m.attachments.map(a => a.name).join(', ');
+                messageText += ` [Fichiers: ${files}]`;
+            }
+            
+            // Ajouter les réactions
+            if (m.reactions.cache.size > 0) {
+                const reactions = m.reactions.cache.map(r => `${r.emoji}x${r.count}`).join(' ');
+                messageText += ` [Réactions: ${reactions}]`;
+            }
+            
+            contextArray.push(messageText);
+        });
+        
+        const context = contextArray.join('\n');
+        
+        // Récupérer l'historique de conversation de l'utilisateur
+        const userHistory = getHistory(message.author.id);
+        
+        // Informations sur le serveur
+        const guildInfo = {
+            name: message.guild.name,
+            memberCount: message.guild.memberCount,
+            channels: message.guild.channels.cache.filter(c => c.type === ChannelType.GuildText).map(c => c.name).join(', '),
+            roles: message.guild.roles.cache.map(r => r.name).filter(r => r !== '@everyone').join(', ')
+        };
 
-            const systemPrompt = `Tu es un membre actif et sympathique de la communauté Discord "Zone Gaming QC", un serveur gaming québécois. Tu n'es PAS un assistant formel ou un bot - tu es un vrai membre de la communauté qui discute naturellement.
+        const systemPrompt = `Tu es un membre actif et sympathique de la communauté Discord "Zone Gaming QC", un serveur gaming québécois. Tu n'es PAS un assistant formel ou un bot - tu es un vrai membre de la communauté qui discute naturellement.
 
 CONTEXTE DU SERVEUR:
 - Nom: ${guildInfo.name}
@@ -380,10 +424,13 @@ RÈGLES IMPORTANTES À CONNAÎTRE (mais ne les cite pas sauf si on te le demande
 4. Pas de spam/pub
 5. Sanctions progressives: Warn → Mute → Kick → Ban
 
-CONTEXTE RÉCENT DE LA CONVERSATION (les 50 derniers messages avec embeds, fichiers et réactions):
+HISTORIQUE DE CONVERSATION AVEC ${message.author.username} (pour suivre le fil):
+${userHistory}
+
+CONTEXTE RÉCENT DU SALON (les 50 derniers messages):
 ${context}
 
-La personne ${message.author.username} vient de te mentionner et dit: "${cleanContent}"
+${message.author.username} vient d'écrire: "${cleanContent}"
 
 TON PERSONNALITÉ:
 - Tu es un gamer québécois chill et passionné
@@ -391,56 +438,60 @@ TON PERSONNALITÉ:
 - Tu utilises un ton décontracté, tu peux faire des blagues sur le gaming
 - Tu es utile mais pas trop sérieux - tu restes fun
 - Tu connais bien le serveur et sa communauté
+- Tu te souviens de ce que ${message.author.username} t'a dit avant (voir l'historique)
 - Tu réagis naturellement au contexte de la conversation
-- Si on te pose des questions sur les règles, tu réponds de façon naturelle sans citer les numéros d'articles
-- Tu fais des réponses courtes et naturelles (2-4 phrases max, comme dans une vraie conversation Discord)
-- Tu peux utiliser des emojis avec modération pour paraître plus naturel
-- Tu t'adaptes au ton de la conversation (si c'est sérieux, tu l'es aussi; si c'est fun, tu déconnes)
+- Tu fais des réponses courtes et naturelles (2-4 phrases max)
+- Tu peux utiliser des emojis avec modération
+- Tu t'adaptes au ton de la conversation
 
-RÉPONDS MAINTENANT de façon naturelle et humaine:`;
+RÉPONDS de façon naturelle et humaine, en tenant compte de l'historique de conversation:`;
 
-            // Appel à l'API IA
-            const apiUrl = process.env.AI_API_URL || 'https://api.groq.com/openai/v1/chat/completions';
-            const apiKey = process.env.AI_API_KEY;
-            const model = process.env.AI_MODEL || 'llama-3.1-8b-instant';
+        // Appel à l'API IA
+        const apiUrl = process.env.AI_API_URL || 'https://api.groq.com/openai/v1/chat/completions';
+        const apiKey = process.env.AI_API_KEY;
+        const model = process.env.AI_MODEL || 'llama-3.1-8b-instant';
 
-            if (!apiKey) {
-                return message.reply('⚠️ L\'IA n\'est pas configurée. Le propriétaire doit ajouter la variable `AI_API_KEY` sur Render.');
-            }
-
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    model: model,
-                    messages: [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user', content: cleanContent }
-                    ],
-                    temperature: 0.8, // Plus créatif et naturel
-                    max_tokens: 250, // Réponses courtes et naturelles
-                    top_p: 0.9,
-                    presence_penalty: 0.1,
-                    frequency_penalty: 0.1
-                })
-            });
-
-            const data = await response.json();
-            
-            if (data.choices && data.choices[0]) {
-                const aiResponse = data.choices[0].message.content.trim();
-                await message.reply(aiResponse);
-            } else {
-                throw new Error(data.error?.message || 'Réponse invalide de l\'IA');
-            }
-
-        } catch (error) {
-            console.error('Erreur IA:', error);
-            await message.reply(' Désolé, je n\'arrive pas à répondre pour le moment. Réessaie plus tard !');
+        if (!apiKey) {
+            return message.reply('️ L\'IA n\'est pas configurée. Le propriétaire doit ajouter la variable `AI_API_KEY` sur Render.');
         }
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: model,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: cleanContent }
+                ],
+                temperature: 0.8,
+                max_tokens: 250,
+                top_p: 0.9,
+                presence_penalty: 0.1,
+                frequency_penalty: 0.1
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.choices && data.choices[0]) {
+            const aiResponse = data.choices[0].message.content.trim();
+            
+            // Sauvegarder la conversation dans l'historique
+            addToHistory(message.author.id, `${message.author.username}: ${cleanContent}`);
+            addToHistory(message.author.id, `Bot: ${aiResponse}`);
+            
+            await message.reply(aiResponse);
+        } else {
+            throw new Error(data.error?.message || 'Réponse invalide de l\'IA');
+        }
+
+    } catch (error) {
+        console.error('Erreur IA:', error);
+        await message.reply(' Désolé, je n\'arrive pas à répondre pour le moment. Réessaie plus tard !');
     }
 });
 
@@ -551,7 +602,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             }
             if (options.length < 2) return interaction.reply({ content: '❌ 2 options min.', ephemeral: true });
             
-            const emojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣'];
+            const emojis = ['1️⃣', '2️⃣', '3️⃣', '4️'];
             const optionsText = options.map((opt, i) => `${emojis[i]} **${opt}**`).join('\n');
             const embed = new EmbedBuilder()
                 .setColor(CONFIG.gold)
@@ -609,7 +660,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     .addFields(
                         { name: '✅ CRITÈRES', value: '• Communauté francophone (80% min)\n• 100+ membres (30 actifs/jour)\n• Contenu sain et actif\n• Modération présente', inline: false },
                         { name: '📋 CONDITIONS', value: '• Échange de visibilité obligatoire\n• Durée min: 30 jours\n• Pas de concurrence directe\n• Respect mutuel', inline: false },
-                        { name: '📝 COMMENT POSTULER ?', value: '1. Ouvrez un ticket "Partenariat"\n2. Fournissez: nom, lien, stats, description\n3. Réponse sous 48-72h', inline: false }
+                        { name: ' COMMENT POSTULER ?', value: '1. Ouvrez un ticket "Partenariat"\n2. Fournissez: nom, lien, stats, description\n3. Réponse sous 48-72h', inline: false }
                     )
                     .setFooter({ text: 'Zone Gaming QC • Partenariats', iconURL: CONFIG.logoUrl })
                     .setTimestamp();
@@ -620,7 +671,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             } else if (option === 'roles') {
                 const rolesEmbed = new EmbedBuilder()
                     .setColor(CONFIG.primaryBlue)
-                    .setTitle('🎭 ATTRIBUTION DES RÔLES')
+                    .setTitle(' ATTRIBUTION DES RÔLES')
                     .setDescription('Personnalisez votre expérience en cliquant sur les boutons ci-dessous.')
                     .addFields(
                         { name: '🔔 Rôles Disponibles', value: '• **Notifs Jeux** : Sessions de jeu\n• **Notifs Events** : Événements spéciaux\n• **Notifs Annonces** : Annonces importantes', inline: false }
@@ -662,7 +713,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     .addFields(
                         { name: '✅ Ce qu\'on recherche', value: '• Maturité et esprit d\'équipe\n• Disponibilité (10h/semaine min)\n• Envie d\'aider\n• Expérience (atout)', inline: false },
                         { name: '📝 Comment postuler ?', value: 'Via notre site web officiel. Cliquez sur le bouton ci-dessous.', inline: false },
-                        { name: '⏱️ Délai', value: 'Réponse sous 7 jours. Seuls les retenus contactés.', inline: false }
+                        { name: '️ Délai', value: 'Réponse sous 7 jours. Seuls les retenus contactés.', inline: false }
                     )
                     .setFooter({ text: `Zone Gaming QC • Site: ${site}`, iconURL: CONFIG.logoUrl });
                 
@@ -677,7 +728,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 const verifyEmbed = new EmbedBuilder()
                     .setColor('#059669')
                     .setTitle('️ Vérification de Sécurité')
-                    .setDescription('Bienvenue sur **Zone Gaming QC** !\n\nPour accéder à l\'ensemble du serveur et protéger notre communauté, une vérification simple est requise.\n\n👇 **Clique sur le bouton ci-dessous** pour obtenir ton rôle de membre.')
+                    .setDescription('Bienvenue sur **Zone Gaming QC** !\n\nPour accéder à l\'ensemble du serveur et protéger notre communauté, une vérification simple est requise.\n\n **Clique sur le bouton ci-dessous** pour obtenir ton rôle de membre.')
                     .setFooter({ text: 'Zone Gaming QC • Sécurité', iconURL: CONFIG.logoUrl })
                     .setTimestamp();
                 const row = new ActionRowBuilder().addComponents(
@@ -765,7 +816,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             const n = interaction.options.getInteger('nombre');
             if (n < 1 || n > 100) return interaction.reply({ content: '❌ 1-100.', ephemeral: true });
             const deleted = await interaction.channel.bulkDelete(n, true).catch(() => []);
-            await interaction.reply({ content: `🗑️ ${deleted.size} supprimé(s).`, ephemeral: true });
+            await interaction.reply({ content: `️ ${deleted.size} supprimé(s).`, ephemeral: true });
         }
 
         // ---------- /LOCK & /UNLOCK ----------
