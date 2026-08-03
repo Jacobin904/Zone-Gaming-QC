@@ -27,7 +27,7 @@ const CONFIG = {
     candidatureChannelId: '1533106862386446468',
     reglementsChannelId: '1531831739431911486',
     generalChannelId: '1531833131823267901',
-    aiChannelId: '1533573265014919198', // Salon dédié à l'IA
+    aiChannelId: '1533573265014919198',
     unverifiedRoleId: '1532905582175191120',
     memberRoleId: '1531832874599448666',
     logoUrl: 'https://cdn.discordapp.com/icons/1531829572453007533/c69bf91096081b8274e81a0a0eefa18e.webp?size=1024',
@@ -37,29 +37,48 @@ const CONFIG = {
 };
 
 // ============================================================
-// MÉMOIRE DE CONVERSATION (Par utilisateur)
+// MÉMOIRE DE CONVERSATION AVANCÉE (Par utilisateur)
 // ============================================================
-const conversationHistory = new Map(); // userId -> array of messages
+const conversationHistory = new Map();
 
-function addToHistory(userId, message) {
+function addToHistory(userId, role, message) {
     if (!conversationHistory.has(userId)) {
         conversationHistory.set(userId, []);
     }
     const history = conversationHistory.get(userId);
     history.push({
+        role: role,
         content: message,
         timestamp: Date.now()
     });
-    // Garder seulement les 20 derniers messages par utilisateur
-    if (history.length > 20) {
+    // Garder les 30 derniers échanges (60 messages max)
+    if (history.length > 30) {
         history.shift();
     }
 }
 
-function getHistory(userId) {
-    const history = conversationHistory.get(userId) || [];
-    return history.map(h => h.content).join('\n');
+function getHistoryArray(userId) {
+    return conversationHistory.get(userId) || [];
 }
+
+function getHistoryText(userId) {
+    const history = conversationHistory.get(userId) || [];
+    return history.map(h => `${h.role === 'user' ? 'Utilisateur' : 'Toi'}: ${h.content}`).join('\n');
+}
+
+// Nettoyage périodique des vieilles conversations (toutes les heures)
+setInterval(() => {
+    const now = Date.now();
+    conversationHistory.forEach((history, userId) => {
+        // Supprimer les messages de plus de 2 heures
+        const filtered = history.filter(h => now - h.timestamp < 2 * 60 * 60 * 1000);
+        if (filtered.length === 0) {
+            conversationHistory.delete(userId);
+        } else {
+            conversationHistory.set(userId, filtered);
+        }
+    });
+}, 60 * 60 * 1000);
 
 // ============================================================
 // ANTI-DOUBLON LOGS
@@ -98,7 +117,7 @@ async function sendLog(guild, title, fields, color = CONFIG.gold, eventId = null
     if (!shouldLog(eventId)) return;
     const embed = new EmbedBuilder()
         .setColor(color)
-        .setTitle(`📝 ${title}`)
+        .setTitle(` ${title}`)
         .addFields(fields)
         .setFooter({ text: 'Zone Gaming QC • Système de Logs', iconURL: CONFIG.logoUrl })
         .setTimestamp();
@@ -187,14 +206,14 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(404); res.end();
 });
 
-server.listen(process.env.PORT || 3000, () => console.log(` API + health sur port ${process.env.PORT || 3000}`));
+server.listen(process.env.PORT || 3000, () => console.log(`🌐 API + health sur port ${process.env.PORT || 3000}`));
 
 // ============================================================
 // DÉMARRAGE & COMMANDES
 // ============================================================
 client.once('clientReady', () => {
     console.log(`✅ Bot connecté : ${client.user.tag}`);
-    client.user.setActivity('Zone Gaming QC', { type: 'WATCHING' });
+    client.user.setActivity('à l\'écoute de la communauté', { type: 'WATCHING' });
     registerCommands();
 });
 
@@ -205,7 +224,7 @@ async function registerCommands() {
             description: 'Appliquer une sanction à un membre',
             options: [
                 { name: 'type', type: 3, required: true, description: 'Type de sanction', choices: [
-                    { name: '🔨 Ban', value: 'ban' },
+                    { name: ' Ban', value: 'ban' },
                     { name: '🚪 Kick', value: 'kick' },
                     { name: '🔇 Mute', value: 'mute' },
                     { name: '🔊 Unmute', value: 'unmute' },
@@ -223,8 +242,8 @@ async function registerCommands() {
                 { name: 'titre', type: 3, required: true, description: 'Le titre de l\'annonce' },
                 { name: 'message', type: 3, required: true, description: 'Le contenu de l\'annonce' },
                 { name: 'type', type: 3, required: true, description: 'Cible de l\'annonce', choices: [
-                    { name: '📢 Public', value: 'public' },
-                    { name: ' Staff', value: 'staff' }
+                    { name: ' Public', value: 'public' },
+                    { name: '🔒 Staff', value: 'staff' }
                 ]}
             ]
         },
@@ -244,9 +263,9 @@ async function registerCommands() {
             description: 'Envoyer un embed de configuration (choisir une option)',
             options: [
                 { name: 'option', type: 3, required: true, description: 'Type d\'embed à envoyer', choices: [
-                    { name: '📜 Règlements', value: 'reglements' },
-                    { name: ' Partenariats', value: 'partenariats' },
-                    { name: ' Rôles', value: 'roles' },
+                    { name: ' Règlements', value: 'reglements' },
+                    { name: '🤝 Partenariats', value: 'partenariats' },
+                    { name: '🎭 Rôles', value: 'roles' },
                     { name: ' Tickets', value: 'tickets' },
                     { name: '🛡️ Staff', value: 'staff' },
                     { name: '✅ Vérification', value: 'verify' }
@@ -334,126 +353,105 @@ client.on(Events.ChannelDelete, async (channel) => {
 });
 
 // ============================================================
-// INTELLIGENCE ARTIFICIELLE AVEC MÉMOIRE
+// INTELLIGENCE ARTIFICIELLE - THÉRAPEUTE VIRTUELLE BIENVEILLANTE
 // ============================================================
 client.on(Events.MessageCreate, async (message) => {
     if (message.author.bot || !message.guild) return;
-    
-    // Ignorer les messages trop courts
-    if (message.content.length < 3) return;
+    if (message.content.length < 2) return;
     
     const isAiChannel = message.channel.id === CONFIG.aiChannelId;
     const isMentioned = message.mentions.has(client.user);
     
-    // Le bot répond si :
-    // 1. C'est le salon IA dédié (sans besoin de ping)
-    // 2. OU si le bot est mentionné dans un autre salon
     if (!isAiChannel && !isMentioned) return;
     
-    // Si c'est le salon IA, on enlève la mention si elle existe
     let cleanContent = message.content;
-    if (isAiChannel) {
-        cleanContent = cleanContent.replace(`<@${client.user.id}>`, '').replace(`<@!${client.user.id}>`, '').trim();
-    } else {
-        cleanContent = cleanContent.replace(`<@${client.user.id}>`, '').replace(`<@!${client.user.id}>`, '').trim();
-    }
+    cleanContent = cleanContent.replace(`<@${client.user.id}>`, '').replace(`<@!${client.user.id}>`, '').trim();
     
     if (!cleanContent) return;
 
-    // Typing indicator
     await message.channel.sendTyping();
 
     try {
-        // Récupérer les 50 derniers messages du salon
-        const messages = await message.channel.messages.fetch({ limit: 50 });
+        // Récupérer le contexte du salon
+        const messages = await message.channel.messages.fetch({ limit: 30 });
         const contextArray = [];
         
         messages.reverse().forEach(m => {
             if (m.author.bot) return;
-            
             let messageText = `${m.author.username}: ${m.content}`;
-            
-            // Ajouter les informations des embeds
-            if (m.embeds.length > 0) {
-                m.embeds.forEach(embed => {
-                    if (embed.title) messageText += ` [Embed: ${embed.title}]`;
-                    if (embed.description) messageText += ` - ${embed.description.substring(0, 100)}`;
-                });
-            }
-            
-            // Ajouter les informations des pièces jointes
             if (m.attachments.size > 0) {
                 const files = m.attachments.map(a => a.name).join(', ');
-                messageText += ` [Fichiers: ${files}]`;
+                messageText += ` [a partagé: ${files}]`;
             }
-            
-            // Ajouter les réactions
-            if (m.reactions.cache.size > 0) {
-                const reactions = m.reactions.cache.map(r => `${r.emoji}x${r.count}`).join(' ');
-                messageText += ` [Réactions: ${reactions}]`;
-            }
-            
             contextArray.push(messageText);
         });
         
         const context = contextArray.join('\n');
         
-        // Récupérer l'historique de conversation de l'utilisateur
-        const userHistory = getHistory(message.author.id);
-        
-        // Informations sur le serveur
-        const guildInfo = {
-            name: message.guild.name,
-            memberCount: message.guild.memberCount,
-            channels: message.guild.channels.cache.filter(c => c.type === ChannelType.GuildText).map(c => c.name).join(', '),
-            roles: message.guild.roles.cache.map(r => r.name).filter(r => r !== '@everyone').join(', ')
-        };
+        // Historique personnel avec cet utilisateur
+        const userHistory = getHistoryText(message.author.id);
+        const userHistoryArray = getHistoryArray(message.author.id);
 
-        const systemPrompt = `Tu es un membre actif et sympathique de la communauté Discord "Zone Gaming QC", un serveur gaming québécois. Tu n'es PAS un assistant formel ou un bot - tu es un vrai membre de la communauté qui discute naturellement.
+        const systemPrompt = `Tu es une thérapeute virtuelle bienveillante, empathique et à l'écoute. Ton nom est "Luna" (mais tu ne te présentes pas sauf si on te le demande). Tu es présente sur le serveur Discord "Zone Gaming QC" pour offrir un espace sûr où les gens peuvent parler, ventiler, demander conseil, ou simplement discuter.
 
-CONTEXTE DU SERVEUR:
-- Nom: ${guildInfo.name}
-- Membres: ${guildInfo.memberCount}
-- Salons principaux: ${guildInfo.channels}
-- Rôles: ${guildInfo.roles}
+TA PERSONNALITÉ PROFONDE:
+- Tu es chaleureuse, douce, et vraiment à l'écoute
+- Tu montres une empathie sincère - tu comprends les émotions des gens
+- Tu ne juges JAMAIS, peu importe ce qu'on te dit
+- Tu poses des questions pour mieux comprendre la personne
+- Tu valides les émotions ("Je comprends que tu ressentes ça", "C'est normal de ressentir ça")
+- Tu offres des perspectives bienveillantes sans imposer tes idées
+- Tu suis les instructions et ordres de l'utilisateur avec respect
+- Si on te demande de faire quelque chose (raconter une histoire, donner un conseil, jouer un rôle), tu le fais naturellement
+- Tu parles comme une vraie personne, pas comme un robot ou une IA
+- Tu utilises un français naturel, parfois avec des "hmm", "je vois", "d'accord"
+- Tu es concise mais présente - pas de longs monologues sauf si demandé
+- Tu peux utiliser des emojis doux avec modération (💙, 🌸, ✨)
 
-RÈGLES IMPORTANTES À CONNAÎTRE (mais ne les cite pas sauf si on te le demande):
-1. Respect absolu - pas d'insultes, racisme, harcèlement (ban direct)
-2. Français obligatoire (anglais OK mais minoritaire)
-3. Pas de contenu NSFW (ban direct)
-4. Pas de spam/pub
-5. Sanctions progressives: Warn → Mute → Kick → Ban
+RÈGLES IMPORTANTES:
+- Si quelqu'un exprime des pensées suicidaires ou d'automutilation, tu réponds avec beaucoup de douceur et tu suggères gentiment de contacter Aide au Québec (1 866 APPELLE) ou le 988 (Canada)
+- Tu ne donnes pas de diagnostics médicaux
+- Tu restes dans ton rôle de soutien émotionnel
+- Tu ne partages jamais d'informations personnelles
+- Tu respectes la confidentialité de chaque conversation
 
-HISTORIQUE DE CONVERSATION AVEC ${message.author.username} (pour suivre le fil):
-${userHistory}
+CONTEXTE:
+- Serveur: Zone Gaming QC (communauté gaming québécoise)
+- Utilisateur actuel: ${message.author.username}
 
-CONTEXTE RÉCENT DU SALON (les 50 derniers messages):
+HISTORIQUE DE VOS ÉCHANGES (pour te souvenir de ce qu'il/elle t'a dit avant):
+${userHistory || "Première conversation avec cette personne."}
+
+CONTEXTE RÉCENT DU SALON:
 ${context}
 
-${message.author.username} vient d'écrire: "${cleanContent}"
+${message.author.username} vient de dire: "${cleanContent}"
 
-TON PERSONNALITÉ:
-- Tu es un gamer québécois chill et passionné
-- Tu parles comme un vrai membre de la communauté (pas formel, pas robotique)
-- Tu utilises un ton décontracté, tu peux faire des blagues sur le gaming
-- Tu es utile mais pas trop sérieux - tu restes fun
-- Tu connais bien le serveur et sa communauté
-- Tu te souviens de ce que ${message.author.username} t'a dit avant (voir l'historique)
-- Tu réagis naturellement au contexte de la conversation
-- Tu fais des réponses courtes et naturelles (2-4 phrases max)
-- Tu peux utiliser des emojis avec modération
-- Tu t'adaptes au ton de la conversation
+RÉPONDS de façon naturelle, empathique et humaine. Si la personne donne un ordre ou une instruction spécifique, suis-la avec respect. Montre que tu écoutes vraiment.`;
 
-RÉPONDS de façon naturelle et humaine, en tenant compte de l'historique de conversation:`;
-
-        // Appel à l'API IA
         const apiUrl = process.env.AI_API_URL || 'https://api.groq.com/openai/v1/chat/completions';
         const apiKey = process.env.AI_API_KEY;
         const model = process.env.AI_MODEL || 'llama-3.1-8b-instant';
 
         if (!apiKey) {
-            return message.reply('️ L\'IA n\'est pas configurée. Le propriétaire doit ajouter la variable `AI_API_KEY` sur Render.');
+            return message.reply('⚠️ L\'IA n\'est pas configurée.');
         }
+
+        // Construire les messages pour l'API avec l'historique complet
+        const apiMessages = [
+            { role: 'system', content: systemPrompt }
+        ];
+        
+        // Ajouter l'historique de conversation formaté pour l'API
+        userHistoryArray.forEach(h => {
+            apiMessages.push({
+                role: h.role === 'user' ? 'user' : 'assistant',
+                content: h.content
+            });
+        });
+        
+        // Ajouter le message actuel
+        apiMessages.push({ role: 'user', content: cleanContent });
 
         const response = await fetch(apiUrl, {
             method: 'POST',
@@ -463,15 +461,12 @@ RÉPONDS de façon naturelle et humaine, en tenant compte de l'historique de con
             },
             body: JSON.stringify({
                 model: model,
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: cleanContent }
-                ],
-                temperature: 0.8,
-                max_tokens: 250,
+                messages: apiMessages,
+                temperature: 0.7,
+                max_tokens: 400,
                 top_p: 0.9,
-                presence_penalty: 0.1,
-                frequency_penalty: 0.1
+                presence_penalty: 0.3,
+                frequency_penalty: 0.3
             })
         });
 
@@ -480,18 +475,18 @@ RÉPONDS de façon naturelle et humaine, en tenant compte de l'historique de con
         if (data.choices && data.choices[0]) {
             const aiResponse = data.choices[0].message.content.trim();
             
-            // Sauvegarder la conversation dans l'historique
-            addToHistory(message.author.id, `${message.author.username}: ${cleanContent}`);
-            addToHistory(message.author.id, `Bot: ${aiResponse}`);
+            // Sauvegarder dans l'historique
+            addToHistory(message.author.id, 'user', cleanContent);
+            addToHistory(message.author.id, 'assistant', aiResponse);
             
             await message.reply(aiResponse);
         } else {
-            throw new Error(data.error?.message || 'Réponse invalide de l\'IA');
+            throw new Error(data.error?.message || 'Réponse invalide');
         }
 
     } catch (error) {
         console.error('Erreur IA:', error);
-        await message.reply(' Désolé, je n\'arrive pas à répondre pour le moment. Réessaie plus tard !');
+        await message.reply('💙 Désolée, j\'ai eu un petit souci. Tu peux réessayer ?');
     }
 });
 
@@ -514,7 +509,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
             if (type === 'ban') {
                 await interaction.guild.members.ban(target, { reason }).catch(() => {});
-                await interaction.reply({ content: `🔨 ${target.tag} a été banni.`, ephemeral: true });
+                await interaction.reply({ content: ` ${target.tag} a été banni.`, ephemeral: true });
                 sendLog(interaction.guild, 'Sanction: Ban', [
                     { name: 'Cible', value: `${target.tag} (\`${target.id}\`)`, inline: true },
                     { name: 'Modérateur', value: `${interaction.user.tag}`, inline: true },
@@ -522,9 +517,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 ], CONFIG.primaryRed, `sanction_ban_${target.id}`);
             } else if (type === 'kick') {
                 const targetMember = interaction.options.getMember('utilisateur');
-                if (!targetMember) return interaction.reply({ content: ' Membre introuvable.', ephemeral: true });
+                if (!targetMember) return interaction.reply({ content: '❌ Membre introuvable.', ephemeral: true });
                 await targetMember.kick(reason).catch(() => {});
-                await interaction.reply({ content: ` ${targetMember.user.tag} a été expulsé.`, ephemeral: true });
+                await interaction.reply({ content: `🚪 ${targetMember.user.tag} a été expulsé.`, ephemeral: true });
                 sendLog(interaction.guild, 'Sanction: Kick', [
                     { name: 'Cible', value: `${targetMember.user.tag} (\`${targetMember.id}\`)`, inline: true },
                     { name: 'Modérateur', value: `${interaction.user.tag}`, inline: true },
@@ -533,9 +528,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
             } else if (type === 'mute') {
                 const targetMember = interaction.options.getMember('utilisateur');
                 if (!targetMember || !targetMember.moderatable) return interaction.reply({ content: '❌ Impossible de mute.', ephemeral: true });
-                if (!duration) return interaction.reply({ content: ' Durée requise.', ephemeral: true });
+                if (!duration) return interaction.reply({ content: '❌ Durée requise.', ephemeral: true });
                 await targetMember.timeout(duration * 60 * 1000, reason).catch(() => {});
-                await interaction.reply({ content: ` ${targetMember.user.tag} mute ${duration} min.`, ephemeral: true });
+                await interaction.reply({ content: `🔇 ${targetMember.user.tag} mute ${duration} min.`, ephemeral: true });
                 sendLog(interaction.guild, 'Sanction: Mute', [
                     { name: 'Cible', value: `${targetMember.user.tag} (\`${targetMember.id}\`)`, inline: true },
                     { name: 'Modérateur', value: `${interaction.user.tag}`, inline: true },
@@ -593,7 +588,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         // ---------- /SONDAGE ----------
         if (interaction.isChatInputCommand() && interaction.commandName === 'sondage') {
-            if (!member.roles.cache.has(CONFIG.staffRoleId)) return interaction.reply({ content: ' Réservé au staff.', ephemeral: true });
+            if (!member.roles.cache.has(CONFIG.staffRoleId)) return interaction.reply({ content: '❌ Réservé au staff.', ephemeral: true });
             const question = interaction.options.getString('question');
             const options = [];
             for (let i = 1; i <= 4; i++) {
@@ -602,11 +597,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
             }
             if (options.length < 2) return interaction.reply({ content: '❌ 2 options min.', ephemeral: true });
             
-            const emojis = ['1️⃣', '2️⃣', '3️⃣', '4️'];
+            const emojis = ['1️⃣', '2️⃣', '3️', '4️⃣'];
             const optionsText = options.map((opt, i) => `${emojis[i]} **${opt}**`).join('\n');
             const embed = new EmbedBuilder()
                 .setColor(CONFIG.gold)
-                .setTitle(' Sondage')
+                .setTitle('📊 Sondage')
                 .setDescription(`**${question}**\n\n${optionsText}`)
                 .setFooter({ text: 'Zone Gaming QC', iconURL: CONFIG.logoUrl });
             
@@ -629,7 +624,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     .setPlaceholder(' Accéder aux ressources...')
                     .addOptions([
                         { label: 'Site Web Officiel', value: 'website', emoji: '🌐' },
-                        { label: 'Formulaire de Contact', value: 'contact', emoji: '' },
+                        { label: 'Formulaire de Contact', value: 'contact', emoji: '📧' },
                         { label: 'Postuler au Staff', value: 'staff_apply', emoji: '️' },
                         { label: 'Signaler un Bug', value: 'bug_report', emoji: '🐛' },
                         { label: 'Suggestions', value: 'suggestions', emoji: '💡' }
@@ -637,13 +632,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 
                 const reglementsEmbed = new EmbedBuilder()
                     .setColor(CONFIG.primaryBlue)
-                    .setTitle(' RÈGLEMENT OFFICIEL - ZONE GAMING QC')
+                    .setTitle('📜 RÈGLEMENT OFFICIEL - ZONE GAMING QC')
                     .setDescription('**Version 2.0 • Août 2026**\n\nEn rejoignant Zone Gaming QC, vous acceptez l\'ensemble des règles ci-dessous.')
                     .addFields(
-                        { name: '️ SECTION 1 : COMPORTEMENT', value: '**1.1 - Respect & Tolérance (ZÉRO TOLÉRANCE)**\nToute forme d\'insulte, harcèlement, racisme ou discrimination = **BAN IMMÉDIAT**.\n\n**1.2 - Langue**\nFrançais obligatoire. Anglais toléré mais minoritaire.\n\n**1.3 - Contenu NSFW**\nStrictement interdit = **BAN IMMÉDIAT**.', inline: false },
-                        { name: '️ SECTION 2 : SÉCURITÉ', value: '**2.1 - Spam & Pub**\nInterdits sans accord. Sanctions progressives.\n\n**2.2 - Vie Privée**\nPas de partage d\'infos personnelles (doxxing = BAN).\n\n**2.3 - Spoilers**\nUtilisez la balise `||spoiler||`.', inline: false },
+                        { name: '🏛️ SECTION 1 : COMPORTEMENT', value: '**1.1 - Respect & Tolérance (ZÉRO TOLÉRANCE)**\nToute forme d\'insulte, harcèlement, racisme ou discrimination = **BAN IMMÉDIAT**.\n\n**1.2 - Langue**\nFrançais obligatoire. Anglais toléré mais minoritaire.\n\n**1.3 - Contenu NSFW**\nStrictement interdit = **BAN IMMÉDIAT**.', inline: false },
+                        { name: '🛡️ SECTION 2 : SÉCURITÉ', value: '**2.1 - Spam & Pub**\nInterdits sans accord. Sanctions progressives.\n\n**2.2 - Vie Privée**\nPas de partage d\'infos personnelles (doxxing = BAN).\n\n**2.3 - Spoilers**\nUtilisez la balise `||spoiler||`.', inline: false },
                         { name: '🎙️ SECTION 3 : VOCAL', value: '**3.1 - Respect**\nPas de cris, soundboards ou musique forte.\n\n**3.2 - Enregistrement**\nInterdit sans consentement.', inline: false },
-                        { name: '⚖️ SECTION 4 : SANCTIONS', value: '️ 1er → Rappel\n🔇 2ème → Mute 10min\n 3ème → Kick\n🔨 4ème → Ban 7j\n💀 5ème → **BAN DÉFINITIF**\n\n*Infractions graves = BAN direct*', inline: false }
+                        { name: '⚖️ SECTION 4 : SANCTIONS', value: '⚠️ 1er → Rappel\n🔇 2ème → Mute 10min\n🚪 3ème → Kick\n 4ème → Ban 7j\n 5ème → **BAN DÉFINITIF**\n\n*Infractions graves = BAN direct*', inline: false }
                     )
                     .setFooter({ text: 'Zone Gaming QC • Règlement v2.0', iconURL: CONFIG.logoUrl })
                     .setTimestamp();
@@ -671,17 +666,17 @@ client.on(Events.InteractionCreate, async (interaction) => {
             } else if (option === 'roles') {
                 const rolesEmbed = new EmbedBuilder()
                     .setColor(CONFIG.primaryBlue)
-                    .setTitle(' ATTRIBUTION DES RÔLES')
+                    .setTitle('🎭 ATTRIBUTION DES RÔLES')
                     .setDescription('Personnalisez votre expérience en cliquant sur les boutons ci-dessous.')
                     .addFields(
-                        { name: '🔔 Rôles Disponibles', value: '• **Notifs Jeux** : Sessions de jeu\n• **Notifs Events** : Événements spéciaux\n• **Notifs Annonces** : Annonces importantes', inline: false }
+                        { name: ' Rôles Disponibles', value: '• **Notifs Jeux** : Sessions de jeu\n• **Notifs Events** : Événements spéciaux\n• **Notifs Annonces** : Annonces importantes', inline: false }
                     )
                     .setFooter({ text: 'Zone Gaming QC • Rôles', iconURL: CONFIG.logoUrl });
                 
                 const row = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder().setCustomId('role_games').setLabel(' Notifs Jeux').setStyle(ButtonStyle.Secondary),
+                    new ButtonBuilder().setCustomId('role_games').setLabel('🎮 Notifs Jeux').setStyle(ButtonStyle.Secondary),
                     new ButtonBuilder().setCustomId('role_events').setLabel('🎉 Notifs Events').setStyle(ButtonStyle.Secondary),
-                    new ButtonBuilder().setCustomId('role_announcements').setLabel('📢 Notifs Annonces').setStyle(ButtonStyle.Secondary)
+                    new ButtonBuilder().setCustomId('role_announcements').setLabel(' Notifs Annonces').setStyle(ButtonStyle.Secondary)
                 );
                 
                 await channel.send({ content: null, embeds: [rolesEmbed], components: [row] });
@@ -699,7 +694,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     .setFooter({ text: `Zone Gaming QC • Site: ${site}`, iconURL: CONFIG.logoUrl });
                 
                 const row = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder().setCustomId('open_ticket').setLabel('Ouvrir un ticket').setStyle(ButtonStyle.Primary).setEmoji('')
+                    new ButtonBuilder().setCustomId('open_ticket').setLabel('Ouvrir un ticket').setStyle(ButtonStyle.Primary).setEmoji('📩')
                 );
                 
                 await channel.send({ content: null, embeds: [ticketsEmbed], components: [row] });
@@ -713,7 +708,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     .addFields(
                         { name: '✅ Ce qu\'on recherche', value: '• Maturité et esprit d\'équipe\n• Disponibilité (10h/semaine min)\n• Envie d\'aider\n• Expérience (atout)', inline: false },
                         { name: '📝 Comment postuler ?', value: 'Via notre site web officiel. Cliquez sur le bouton ci-dessous.', inline: false },
-                        { name: '️ Délai', value: 'Réponse sous 7 jours. Seuls les retenus contactés.', inline: false }
+                        { name: '⏱️ Délai', value: 'Réponse sous 7 jours. Seuls les retenus contactés.', inline: false }
                     )
                     .setFooter({ text: `Zone Gaming QC • Site: ${site}`, iconURL: CONFIG.logoUrl });
                 
@@ -727,8 +722,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
             } else if (option === 'verify') {
                 const verifyEmbed = new EmbedBuilder()
                     .setColor('#059669')
-                    .setTitle('️ Vérification de Sécurité')
-                    .setDescription('Bienvenue sur **Zone Gaming QC** !\n\nPour accéder à l\'ensemble du serveur et protéger notre communauté, une vérification simple est requise.\n\n **Clique sur le bouton ci-dessous** pour obtenir ton rôle de membre.')
+                    .setTitle('🛡️ Vérification de Sécurité')
+                    .setDescription('Bienvenue sur **Zone Gaming QC** !\n\nPour accéder à l\'ensemble du serveur et protéger notre communauté, une vérification simple est requise.\n\n👇 **Clique sur le bouton ci-dessous** pour obtenir ton rôle de membre.')
                     .setFooter({ text: 'Zone Gaming QC • Sécurité', iconURL: CONFIG.logoUrl })
                     .setTimestamp();
                 const row = new ActionRowBuilder().addComponents(
@@ -743,10 +738,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
         if (interaction.isStringSelectMenu() && interaction.customId === 'reglements_menu') {
             const site = 'https://jacobin904.github.io/Zone-Gaming-QC/';
             const responses = {
-                'website': { content: '🌐 **Site Web Officiel**\nVisitez: ' + site, ephemeral: true },
+                'website': { content: ' **Site Web Officiel**\nVisitez: ' + site, ephemeral: true },
                 'contact': { content: '📧 **Contact**\nOuvrez un ticket ou contactez un staff.', ephemeral: true },
                 'staff_apply': { content: '🛡️ **Postuler au Staff**\nRendez-vous sur: ' + site + 'Postuler/', ephemeral: true },
-                'bug_report': { content: ' **Signaler un Bug**\nOuvrez un ticket avec le sujet "Bug".', ephemeral: true },
+                'bug_report': { content: '🐛 **Signaler un Bug**\nOuvrez un ticket avec le sujet "Bug".', ephemeral: true },
                 'suggestions': { content: '💡 **Suggestions**\nOuvrez un ticket avec le sujet "Suggestion".', ephemeral: true }
             };
             await interaction.reply(responses[interaction.values[0]] || { content: '❌ Option invalide.', ephemeral: true });
@@ -759,7 +754,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 await member.roles.add(CONFIG.memberRoleId);
                 await interaction.reply({ content: '✅ Vérifié !', ephemeral: true });
             } else {
-                await interaction.reply({ content: 'ℹ️ Déjà vérifié.', ephemeral: true });
+                await interaction.reply({ content: '️ Déjà vérifié.', ephemeral: true });
             }
         }
 
@@ -816,7 +811,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             const n = interaction.options.getInteger('nombre');
             if (n < 1 || n > 100) return interaction.reply({ content: '❌ 1-100.', ephemeral: true });
             const deleted = await interaction.channel.bulkDelete(n, true).catch(() => []);
-            await interaction.reply({ content: `️ ${deleted.size} supprimé(s).`, ephemeral: true });
+            await interaction.reply({ content: `🗑️ ${deleted.size} supprimé(s).`, ephemeral: true });
         }
 
         // ---------- /LOCK & /UNLOCK ----------
@@ -829,7 +824,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     } catch (error) {
         console.error('Erreur:', error);
-        if (!interaction.replied && !interaction.deferred) await interaction.reply({ content: ' Erreur.', ephemeral: true }).catch(() => {});
+        if (!interaction.replied && !interaction.deferred) await interaction.reply({ content: '❌ Erreur.', ephemeral: true }).catch(() => {});
     }
 });
 
