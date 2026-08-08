@@ -15,12 +15,15 @@
 
     <style>
         :root {
+            /* TES COULEURS EXACTES */
+            --blue-primary: #42749e;
+            --blue-glow: rgba(66, 116, 158, 0.35);
+            --red-accent: #b74752;
+            --red-glow: rgba(183, 71, 82, 0.35);
+            
             --bg-dark: #0B0C10;
             --bg-surface: #15171E;
             --bg-surface-hover: #1E212B;
-            --primary: #6366F1; /* Indigo vibrant */
-            --primary-glow: rgba(99, 102, 241, 0.4);
-            --accent: #10B981; /* Émeraude pour le positif */
             --text-main: #F8FAFC;
             --text-muted: #94A3B8;
             --border: rgba(255, 255, 255, 0.08);
@@ -45,20 +48,19 @@
         /* --- NAVIGATION --- */
         header {
             position: fixed; top: 0; width: 100%; z-index: 1000;
-            background: rgba(11, 12, 16, 0.85);
+            background: rgba(11, 12, 16, 0.9);
             backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border);
             padding: 1rem 0;
-            transition: all 0.3s ease;
         }
         .nav-inner { display: flex; justify-content: space-between; align-items: center; }
         .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text-main); }
-        .logo img { width: 45px; height: 45px; border-radius: 12px; border: 2px solid var(--primary); }
+        .logo img { width: 45px; height: 45px; border-radius: 12px; border: 2px solid var(--blue-primary); }
         .logo span { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.25rem; letter-spacing: -0.5px; }
         
         .nav-links { display: flex; gap: 2rem; list-style: none; }
         .nav-links a { color: var(--text-muted); text-decoration: none; font-weight: 600; font-size: 0.95rem; transition: color 0.3s; }
-        .nav-links a:hover { color: var(--primary); }
+        .nav-links a:hover { color: var(--blue-primary); }
         
         .btn {
             display: inline-flex; align-items: center; gap: 8px;
@@ -66,36 +68,54 @@
             font-weight: 700; text-decoration: none; transition: all 0.3s ease;
             font-size: 0.95rem; border: none; cursor: pointer;
         }
-        .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 20px var(--primary-glow); }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--primary-glow); }
+        .btn-primary { 
+            background: var(--blue-primary); 
+            color: white; 
+            box-shadow: 0 4px 20px var(--blue-glow); 
+        }
+        .btn-primary:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 8px 30px var(--blue-glow); 
+            background: #4d82b0;
+        }
+        .btn-accent {
+            background: var(--red-accent);
+            color: white;
+            box-shadow: 0 4px 20px var(--red-glow);
+        }
+        .btn-accent:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px var(--red-glow);
+            background: #c9535f;
+        }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
-        .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+        .btn-outline:hover { border-color: var(--blue-primary); color: var(--blue-primary); }
 
         /* --- HERO SECTION --- */
         .hero {
             padding: 180px 0 100px;
             text-align: center;
             position: relative;
-            background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.15), transparent 60%);
+            background: radial-gradient(circle at 50% 0%, rgba(66, 116, 158, 0.2), transparent 60%);
         }
         .hero-badge {
             display: inline-flex; align-items: center; gap: 8px;
-            background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3);
-            color: var(--primary); padding: 6px 16px; border-radius: 50px;
+            background: rgba(183, 71, 82, 0.15); border: 1px solid rgba(183, 71, 82, 0.4);
+            color: var(--red-accent); padding: 6px 16px; border-radius: 50px;
             font-size: 0.85rem; font-weight: 700; margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 1px;
         }
         .hero h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); margin-bottom: 1.5rem; max-width: 900px; margin-left: auto; margin-right: auto; }
-        .hero h1 span { color: var(--primary); }
+        .hero h1 span { color: var(--blue-primary); }
         .hero p { font-size: 1.25rem; color: var(--text-muted); max-width: 700px; margin: 0 auto 2.5rem; }
         .hero-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
 
         /* --- STATS BAR --- */
         .stats-bar {
-            background: var(--bg-surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+            background: var(--bg-surface); border-top: 2px solid var(--blue-primary); border-bottom: 1px solid var(--border);
             padding: 2rem 0; margin-top: -40px; position: relative; z-index: 10; border-radius: var(--radius);
             max-width: 1000px; margin-left: auto; margin-right: auto;
             display: grid; grid-template-columns: repeat(3, 1fr); text-align: center;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
         }
         .stat-item h3 { font-size: 2.5rem; color: var(--text-main); margin-bottom: 0.25rem; }
         .stat-item p { color: var(--text-muted); font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
@@ -104,9 +124,10 @@
         section { padding: 100px 0; }
         .section-header { text-align: center; max-width: 700px; margin: 0 auto 4rem; }
         .section-header h2 { font-size: 2.75rem; margin-bottom: 1rem; }
+        .section-header h2 span { color: var(--blue-primary); }
         .section-header p { color: var(--text-muted); font-size: 1.1rem; }
 
-        /* --- FEATURES GRID (Beaucoup d'infos) --- */
+        /* --- FEATURES GRID --- */
         .features-grid {
             display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2rem;
         }
@@ -114,14 +135,14 @@
             background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius);
             padding: 2.5rem; transition: all 0.4s ease; position: relative; overflow: hidden;
         }
-        .feature-card:hover { transform: translateY(-5px); border-color: var(--primary); box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        .feature-card:hover { transform: translateY(-5px); border-color: var(--blue-primary); box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
         .feature-card::before {
             content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px;
-            background: var(--primary); transform: scaleX(0); transform-origin: left; transition: transform 0.4s ease;
+            background: var(--blue-primary); transform: scaleX(0); transform-origin: left; transition: transform 0.4s ease;
         }
         .feature-card:hover::before { transform: scaleX(1); }
         .feature-icon {
-            width: 60px; height: 60px; background: rgba(99, 102, 241, 0.1); color: var(--primary);
+            width: 60px; height: 60px; background: rgba(66, 116, 158, 0.15); color: var(--blue-primary);
             border-radius: 16px; display: flex; align-items: center; justify-content: center;
             font-size: 1.5rem; margin-bottom: 1.5rem;
         }
@@ -129,7 +150,7 @@
         .feature-card p { color: var(--text-muted); font-size: 1rem; line-height: 1.8; }
         .feature-list { list-style: none; margin-top: 1.5rem; }
         .feature-list li { display: flex; align-items: center; gap: 10px; color: var(--text-muted); margin-bottom: 0.75rem; font-size: 0.95rem; }
-        .feature-list li i { color: var(--accent); font-size: 0.8rem; }
+        .feature-list li i { color: var(--red-accent); font-size: 0.8rem; }
 
         /* --- TEAM SECTION --- */
         .team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; max-width: 900px; margin: 0 auto; }
@@ -137,15 +158,15 @@
             background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius);
             padding: 2.5rem; text-align: center; transition: all 0.3s ease;
         }
-        .team-card:hover { border-color: var(--primary); transform: translateY(-5px); }
+        .team-card:hover { border-color: var(--red-accent); transform: translateY(-5px); }
         .team-avatar {
             width: 120px; height: 120px; border-radius: 50%; object-fit: cover;
-            border: 4px solid var(--bg-dark); box-shadow: 0 0 0 4px var(--primary);
+            border: 4px solid var(--bg-dark); box-shadow: 0 0 0 4px var(--blue-primary);
             margin: 0 auto 1.5rem;
         }
         .team-card h3 { font-size: 1.5rem; margin-bottom: 0.5rem; }
         .team-role {
-            display: inline-block; background: rgba(99, 102, 241, 0.15); color: var(--primary);
+            display: inline-block; background: rgba(183, 71, 82, 0.15); color: var(--red-accent);
             padding: 4px 12px; border-radius: 50px; font-size: 0.8rem; font-weight: 700; margin-bottom: 1.5rem;
         }
         .team-card p { color: var(--text-muted); font-size: 0.95rem; }
@@ -154,24 +175,27 @@
         .rules-container {
             background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius);
             padding: 3rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start;
+            border-left: 4px solid var(--red-accent);
         }
         .rules-intro h3 { font-size: 2rem; margin-bottom: 1rem; }
+        .rules-intro h3 span { color: var(--red-accent); }
         .rules-intro p { color: var(--text-muted); margin-bottom: 2rem; }
         .rules-list { display: flex; flex-direction: column; gap: 1.5rem; }
         .rule-item { display: flex; gap: 1.5rem; }
         .rule-number {
             font-family: 'Outfit', sans-serif; font-size: 2rem; font-weight: 800;
-            color: rgba(255,255,255,0.1); line-height: 1; min-width: 40px;
+            color: var(--red-accent); line-height: 1; min-width: 40px;
         }
         .rule-content h4 { font-size: 1.2rem; margin-bottom: 0.5rem; color: var(--text-main); }
         .rule-content p { color: var(--text-muted); font-size: 0.95rem; }
 
         /* --- CTA FOOTER --- */
         .cta-footer {
-            background: linear-gradient(180deg, var(--bg-dark) 0%, rgba(99, 102, 241, 0.1) 100%);
+            background: linear-gradient(180deg, var(--bg-dark) 0%, rgba(66, 116, 158, 0.15) 100%);
             text-align: center; padding: 120px 0; border-top: 1px solid var(--border);
         }
         .cta-footer h2 { font-size: 3rem; margin-bottom: 1.5rem; }
+        .cta-footer h2 span { color: var(--blue-primary); }
         .cta-footer p { color: var(--text-muted); max-width: 600px; margin: 0 auto 2.5rem; font-size: 1.1rem; }
 
         footer {
@@ -180,11 +204,11 @@
         }
         .footer-links { display: flex; justify-content: center; gap: 2rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
         .footer-links a { color: var(--text-muted); text-decoration: none; transition: color 0.3s; }
-        .footer-links a:hover { color: var(--primary); }
+        .footer-links a:hover { color: var(--blue-primary); }
 
         /* --- RESPONSIVE --- */
         @media (max-width: 900px) {
-            .nav-links { display: none; } /* Simplified for mobile, could add hamburger */
+            .nav-links { display: none; }
             .stats-bar { grid-template-columns: 1fr; gap: 2rem; margin-top: 2rem; }
             .rules-container { grid-template-columns: 1fr; }
             .hero h1 { font-size: 2.5rem; }
@@ -255,7 +279,7 @@
     <section id="vision">
         <div class="container">
             <div class="section-header reveal">
-                <h2>Notre Vision</h2>
+                <h2>Notre <span>Vision</span></h2>
                 <p>Zone Gaming QC est né d'un constat simple : il manquait un espace francophone au Québec qui allie professionnalisme de la modération et chaleur d'une communauté soudée.</p>
             </div>
             <div class="features-grid">
@@ -282,7 +306,7 @@
     <section id="fonctionnalites" style="background: var(--bg-surface);">
         <div class="container">
             <div class="section-header reveal">
-                <h2>Tout ce dont tu as besoin</h2>
+                <h2>Tout ce dont <span>tu as besoin</span></h2>
                 <p>Une infrastructure complète pour une expérience utilisateur sans friction.</p>
             </div>
             <div class="features-grid">
@@ -327,7 +351,7 @@
     <section id="equipe">
         <div class="container">
             <div class="section-header reveal">
-                <h2>Les Architectes</h2>
+                <h2>Les <span>Architectes</span></h2>
                 <p>Les personnes qui veillent au grain et font grandir Zone Gaming QC au quotidien.</p>
             </div>
             <div class="team-grid">
@@ -348,14 +372,14 @@
     </section>
 
     <!-- RÈGLEMENT / CHARTE -->
-    <section id="reglement" style="background: var(--bg-surface);">
+    <section id="reglement">
         <div class="container">
             <div class="rules-container reveal">
                 <div class="rules-intro">
-                    <h3>La Charte de <span style="color: var(--primary);">Zone Gaming QC</span></h3>
+                    <h3>La Charte de <span>Zone Gaming QC</span></h3>
                     <p>Pour garantir une ambiance saine, nous avons établi des règles claires. En rejoignant le serveur, tu t'engages à les respecter. L'ignorance des règles n'est pas une excuse.</p>
-                    <a href="https://discord.gg/d8g2eztfbM" target="_blank" class="btn btn-outline" style="margin-top: 1rem;">
-                        Lire le règlement complet sur Discord
+                    <a href="https://discord.gg/d8g2eztfbM" target="_blank" class="btn btn-accent" style="margin-top: 1rem;">
+                        <i class="fas fa-book"></i> Lire le règlement complet
                     </a>
                 </div>
                 <div class="rules-list">
@@ -395,7 +419,7 @@
     <!-- CTA FINAL -->
     <section class="cta-footer">
         <div class="container reveal">
-            <h2>Prêt à rejoindre l'aventure ?</h2>
+            <h2>Prêt à rejoindre <span>l'aventure ?</span></h2>
             <p>Ne reste pas spectateur. Viens jouer, discuter et faire partie d'une communauté qui te ressemble. Ton prochain meilleur ami gaming t'attend peut-être déjà.</p>
             <a href="https://discord.gg/d8g2eztfbM" target="_blank" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem 2.5rem;">
                 <i class="fab fa-discord"></i> Rejoindre Zone Gaming QC
@@ -410,7 +434,6 @@
                 <a href="https://discord.gg/d8g2eztfbM" target="_blank">Serveur Discord</a>
                 <a href="Postuler/">Recrutement Staff</a>
                 <a href="#reglement">Règlement Complet</a>
-                <a href="mailto:contact@zonegamingqc.com">Contact</a>
             </div>
             <p>&copy; 2026 Zone Gaming QC. Tous droits réservés.</p>
             <p style="margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.6;">Conçu et développé avec passion par Jacobin Babouain</p>
@@ -419,13 +442,10 @@
 
     <!-- SCRIPT D'ANIMATION AU SCROLL -->
     <script>
-        // Animation d'apparition au défilement
         const revealElements = document.querySelectorAll('.reveal');
-        
         const revealOnScroll = () => {
             const windowHeight = window.innerHeight;
             const elementVisible = 100;
-            
             revealElements.forEach((reveal) => {
                 const elementTop = reveal.getBoundingClientRect().top;
                 if (elementTop < windowHeight - elementVisible) {
@@ -433,9 +453,7 @@
                 }
             });
         };
-        
         window.addEventListener('scroll', revealOnScroll);
-        // Déclencher une fois au chargement
         revealOnScroll();
     </script>
 </body>
