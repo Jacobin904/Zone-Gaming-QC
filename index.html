@@ -3,577 +3,321 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zone Gaming QC | L'Expérience Ultime</title>
+    <title>Zone Gaming QC | La Communauté Gaming Québécoise de Référence</title>
+    <meta name="description" content="Rejoins Zone Gaming QC : une communauté dynamique, multigaming et accueillante. Events, tournois, modération active et bonne humeur garantie.">
     <link rel="icon" type="image/webp" href="https://cdn.discordapp.com/icons/1531829572453007533/c69bf91096081b8274e81a0a0eefa18e.webp?size=1024">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Fonts Modernes -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <style>
         :root {
-            --bg-void: #09090b;
-            --bg-surface: #18181b;
-            --bg-glass: rgba(24, 24, 27, 0.6);
-            --cyan: #06b6d4;
-            --purple: #8b5cf6;
-            --pink: #ec4899;
-            --text-main: #fafafa;
-            --text-muted: #a1a1aa;
+            --bg-dark: #0B0C10;
+            --bg-surface: #15171E;
+            --bg-surface-hover: #1E212B;
+            --primary: #6366F1; /* Indigo vibrant */
+            --primary-glow: rgba(99, 102, 241, 0.4);
+            --accent: #10B981; /* Émeraude pour le positif */
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
             --border: rgba(255, 255, 255, 0.08);
-            --glow-cyan: 0 0 40px rgba(6, 182, 212, 0.3);
-            --glow-purple: 0 0 40px rgba(139, 92, 246, 0.3);
+            --radius: 16px;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { scroll-behavior: smooth; }
         
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-void);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-dark);
             color: var(--text-main);
+            line-height: 1.7;
             overflow-x: hidden;
-            line-height: 1.6;
         }
 
-        /* Arrière-plan animé abstrait */
-        .bg-mesh {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            z-index: -1;
-            background: 
-                radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.15), transparent 40%),
-                radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.15), transparent 40%);
-            filter: blur(60px);
-        }
-
-        /* Navigation Flottante (Dock) */
-        .nav-dock {
-            position: fixed;
-            bottom: 2rem;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--bg-glass);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--border);
-            border-radius: 100px;
-            padding: 0.75rem 1.5rem;
-            display: flex;
-            gap: 0.5rem;
-            z-index: 1000;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-        }
-        .nav-dock a {
-            color: var(--text-muted);
-            text-decoration: none;
-            padding: 0.75rem 1.25rem;
-            border-radius: 50px;
-            font-size: 0.9rem;
-            font-weight: 500;
+        h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; font-weight: 800; line-height: 1.2; }
+        
+        .container { max-width: 1280px; margin: 0 auto; padding: 0 2rem; }
+        
+        /* --- NAVIGATION --- */
+        header {
+            position: fixed; top: 0; width: 100%; z-index: 1000;
+            background: rgba(11, 12, 16, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
             transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
         }
-        .nav-dock a:hover, .nav-dock a.active {
-            background: rgba(255,255,255,0.1);
-            color: var(--text-main);
+        .nav-inner { display: flex; justify-content: space-between; align-items: center; }
+        .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text-main); }
+        .logo img { width: 45px; height: 45px; border-radius: 12px; border: 2px solid var(--primary); }
+        .logo span { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.25rem; letter-spacing: -0.5px; }
+        
+        .nav-links { display: flex; gap: 2rem; list-style: none; }
+        .nav-links a { color: var(--text-muted); text-decoration: none; font-weight: 600; font-size: 0.95rem; transition: color 0.3s; }
+        .nav-links a:hover { color: var(--primary); }
+        
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 0.85rem 1.75rem; border-radius: 12px;
+            font-weight: 700; text-decoration: none; transition: all 0.3s ease;
+            font-size: 0.95rem; border: none; cursor: pointer;
         }
-        .nav-dock a.cta-dock {
-            background: linear-gradient(135deg, var(--cyan), var(--purple));
-            color: white;
-            font-weight: 700;
-        }
-        .nav-dock a.cta-dock:hover {
-            box-shadow: var(--glow-cyan);
-            transform: translateY(-2px);
-        }
+        .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 20px var(--primary-glow); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--primary-glow); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
 
-        /* Layout Global */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-        }
-
-        section {
-            padding: 8rem 0;
-            position: relative;
-        }
-
-        h1, h2, h3 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-        }
-
-        .gradient-text {
-            background: linear-gradient(135deg, var(--cyan), var(--purple), var(--pink));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        /* HERO ASYMÉTRIQUE */
+        /* --- HERO SECTION --- */
         .hero {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            padding-top: 4rem;
-        }
-        .hero-grid {
-            display: grid;
-            grid-template-columns: 1.2fr 0.8fr;
-            gap: 4rem;
-            align-items: center;
+            padding: 180px 0 100px;
+            text-align: center;
+            position: relative;
+            background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.15), transparent 60%);
         }
         .hero-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: rgba(6, 182, 212, 0.1);
-            border: 1px solid rgba(6, 182, 212, 0.3);
-            color: var(--cyan);
-            padding: 0.5rem 1rem;
-            border-radius: 50px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3);
+            color: var(--primary); padding: 6px 16px; border-radius: 50px;
+            font-size: 0.85rem; font-weight: 700; margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 1px;
         }
-        .hero h1 {
-            font-size: clamp(3rem, 6vw, 5rem);
-            line-height: 1.1;
-            margin-bottom: 1.5rem;
-        }
-        .hero p {
-            font-size: 1.25rem;
-            color: var(--text-muted);
-            margin-bottom: 2.5rem;
-            max-width: 500px;
-        }
-        .hero-buttons {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-        .btn {
-            padding: 1rem 2rem;
-            border-radius: 12px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 1rem;
-        }
-        .btn-primary {
-            background: var(--text-main);
-            color: var(--bg-void);
-        }
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 30px rgba(255,255,255,0.2);
-        }
-        .btn-outline {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-main);
-        }
-        .btn-outline:hover {
-            border-color: var(--cyan);
-            color: var(--cyan);
-        }
+        .hero h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); margin-bottom: 1.5rem; max-width: 900px; margin-left: auto; margin-right: auto; }
+        .hero h1 span { color: var(--primary); }
+        .hero p { font-size: 1.25rem; color: var(--text-muted); max-width: 700px; margin: 0 auto 2.5rem; }
+        .hero-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
 
-        .hero-visual {
-            position: relative;
-            height: 400px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        /* --- STATS BAR --- */
+        .stats-bar {
+            background: var(--bg-surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+            padding: 2rem 0; margin-top: -40px; position: relative; z-index: 10; border-radius: var(--radius);
+            max-width: 1000px; margin-left: auto; margin-right: auto;
+            display: grid; grid-template-columns: repeat(3, 1fr); text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
         }
-        .glowing-orb {
-            width: 300px;
-            height: 300px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--cyan), var(--purple));
-            filter: blur(80px);
-            opacity: 0.6;
-            animation: pulse 4s ease-in-out infinite;
-        }
-        .hero-card {
-            position: absolute;
-            background: var(--bg-glass);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--border);
-            padding: 1.5rem;
-            border-radius: 20px;
-            width: 280px;
-            animation: float 6s ease-in-out infinite;
-        }
-        .hero-card:nth-child(2) {
-            top: 10%;
-            right: 0;
-            animation-delay: -2s;
-        }
-        .hero-card:nth-child(3) {
-            bottom: 10%;
-            left: 0;
-            animation-delay: -4s;
-        }
-        .stat-number {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: var(--cyan);
-        }
+        .stat-item h3 { font-size: 2.5rem; color: var(--text-main); margin-bottom: 0.25rem; }
+        .stat-item p { color: var(--text-muted); font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* BENTO GRID (Fonctionnalités) */
-        .bento-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            grid-template-rows: repeat(2, 280px);
-            gap: 1.5rem;
-            margin-top: 3rem;
-        }
-        .bento-item {
-            background: var(--bg-surface);
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            padding: 2rem;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            transition: all 0.4s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        .bento-item:hover {
-            border-color: var(--purple);
-            transform: translateY(-5px);
-            box-shadow: var(--glow-purple);
-        }
-        .bento-item.large {
-            grid-column: span 2;
-            grid-row: span 2;
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.05));
-        }
-        .bento-item.wide {
-            grid-column: span 2;
-        }
-        .bento-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 14px;
-            background: rgba(255,255,255,0.05);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            color: var(--cyan);
-            margin-bottom: 1rem;
-        }
-        .bento-item h3 {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-        }
-        .bento-item p {
-            color: var(--text-muted);
-            font-size: 0.95rem;
-        }
+        /* --- SECTIONS GÉNÉRALES --- */
+        section { padding: 100px 0; }
+        .section-header { text-align: center; max-width: 700px; margin: 0 auto 4rem; }
+        .section-header h2 { font-size: 2.75rem; margin-bottom: 1rem; }
+        .section-header p { color: var(--text-muted); font-size: 1.1rem; }
 
-        /* ACCORDÉON (Règlements) */
-        .accordion {
-            max-width: 800px;
-            margin: 3rem auto 0;
+        /* --- FEATURES GRID (Beaucoup d'infos) --- */
+        .features-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2rem;
         }
-        .accordion-item {
-            background: var(--bg-surface);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            margin-bottom: 1rem;
-            overflow: hidden;
-            transition: all 0.3s ease;
+        .feature-card {
+            background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius);
+            padding: 2.5rem; transition: all 0.4s ease; position: relative; overflow: hidden;
         }
-        .accordion-item:hover {
-            border-color: rgba(236, 72, 153, 0.3);
+        .feature-card:hover { transform: translateY(-5px); border-color: var(--primary); box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        .feature-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px;
+            background: var(--primary); transform: scaleX(0); transform-origin: left; transition: transform 0.4s ease;
         }
-        .accordion-header {
-            padding: 1.5rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            font-family: 'Space Grotesk', sans-serif;
-            font-weight: 600;
-            font-size: 1.1rem;
+        .feature-card:hover::before { transform: scaleX(1); }
+        .feature-icon {
+            width: 60px; height: 60px; background: rgba(99, 102, 241, 0.1); color: var(--primary);
+            border-radius: 16px; display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; margin-bottom: 1.5rem;
         }
-        .accordion-header i {
-            transition: transform 0.3s ease;
-            color: var(--pink);
-        }
-        .accordion-item.active .accordion-header i {
-            transform: rotate(180deg);
-        }
-        .accordion-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.4s ease, padding 0.4s ease;
-            padding: 0 2rem;
-            color: var(--text-muted);
-            line-height: 1.8;
-        }
-        .accordion-item.active .accordion-content {
-            max-height: 300px;
-            padding: 0 2rem 2rem 2rem;
-        }
+        .feature-card h3 { font-size: 1.5rem; margin-bottom: 1rem; }
+        .feature-card p { color: var(--text-muted); font-size: 1rem; line-height: 1.8; }
+        .feature-list { list-style: none; margin-top: 1.5rem; }
+        .feature-list li { display: flex; align-items: center; gap: 10px; color: var(--text-muted); margin-bottom: 0.75rem; font-size: 0.95rem; }
+        .feature-list li i { color: var(--accent); font-size: 0.8rem; }
 
-        /* ÉQUIPE (Horizontal Scroll) */
-        .team-scroll {
-            display: flex;
-            gap: 2rem;
-            overflow-x: auto;
-            padding: 2rem 0;
-            scrollbar-width: none;
-        }
-        .team-scroll::-webkit-scrollbar { display: none; }
+        /* --- TEAM SECTION --- */
+        .team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; max-width: 900px; margin: 0 auto; }
         .team-card {
-            min-width: 300px;
-            background: var(--bg-surface);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 2rem;
-            text-align: center;
-            transition: all 0.3s ease;
+            background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius);
+            padding: 2.5rem; text-align: center; transition: all 0.3s ease;
         }
-        .team-card:hover {
-            border-color: var(--cyan);
-            transform: translateY(-5px);
-        }
+        .team-card:hover { border-color: var(--primary); transform: translateY(-5px); }
         .team-avatar {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid var(--bg-void);
-            box-shadow: 0 0 0 3px var(--cyan);
-            margin-bottom: 1.5rem;
+            width: 120px; height: 120px; border-radius: 50%; object-fit: cover;
+            border: 4px solid var(--bg-dark); box-shadow: 0 0 0 4px var(--primary);
+            margin: 0 auto 1.5rem;
         }
+        .team-card h3 { font-size: 1.5rem; margin-bottom: 0.5rem; }
         .team-role {
-            display: inline-block;
-            background: rgba(6, 182, 212, 0.1);
-            color: var(--cyan);
-            padding: 0.25rem 0.75rem;
-            border-radius: 50px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
+            display: inline-block; background: rgba(99, 102, 241, 0.15); color: var(--primary);
+            padding: 4px 12px; border-radius: 50px; font-size: 0.8rem; font-weight: 700; margin-bottom: 1.5rem;
         }
+        .team-card p { color: var(--text-muted); font-size: 0.95rem; }
 
-        /* CTA FINAL */
-        .cta-section {
-            text-align: center;
-            padding: 10rem 0;
-            background: radial-gradient(circle at center, rgba(139, 92, 246, 0.15), transparent 60%);
+        /* --- RULES / CHARTER --- */
+        .rules-container {
+            background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius);
+            padding: 3rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start;
         }
-        .cta-section h2 {
-            font-size: clamp(2.5rem, 5vw, 4rem);
-            margin-bottom: 1.5rem;
+        .rules-intro h3 { font-size: 2rem; margin-bottom: 1rem; }
+        .rules-intro p { color: var(--text-muted); margin-bottom: 2rem; }
+        .rules-list { display: flex; flex-direction: column; gap: 1.5rem; }
+        .rule-item { display: flex; gap: 1.5rem; }
+        .rule-number {
+            font-family: 'Outfit', sans-serif; font-size: 2rem; font-weight: 800;
+            color: rgba(255,255,255,0.1); line-height: 1; min-width: 40px;
         }
+        .rule-content h4 { font-size: 1.2rem; margin-bottom: 0.5rem; color: var(--text-main); }
+        .rule-content p { color: var(--text-muted); font-size: 0.95rem; }
 
-        /* Footer Minimaliste */
+        /* --- CTA FOOTER --- */
+        .cta-footer {
+            background: linear-gradient(180deg, var(--bg-dark) 0%, rgba(99, 102, 241, 0.1) 100%);
+            text-align: center; padding: 120px 0; border-top: 1px solid var(--border);
+        }
+        .cta-footer h2 { font-size: 3rem; margin-bottom: 1.5rem; }
+        .cta-footer p { color: var(--text-muted); max-width: 600px; margin: 0 auto 2.5rem; font-size: 1.1rem; }
+
         footer {
-            border-top: 1px solid var(--border);
-            padding: 3rem 0 8rem 0; /* Padding bottom pour le dock */
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 0.9rem;
+            background: var(--bg-surface); border-top: 1px solid var(--border);
+            padding: 3rem 0; text-align: center; color: var(--text-muted); font-size: 0.9rem;
         }
-        .footer-links {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            margin-bottom: 2rem;
-        }
-        .footer-links a {
-            color: var(--text-muted);
-            text-decoration: none;
-            transition: color 0.3s;
-        }
-        .footer-links a:hover { color: var(--cyan); }
+        .footer-links { display: flex; justify-content: center; gap: 2rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .footer-links a { color: var(--text-muted); text-decoration: none; transition: color 0.3s; }
+        .footer-links a:hover { color: var(--primary); }
 
-        /* Animations */
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 0.6; }
-            50% { transform: scale(1.1); opacity: 0.8; }
-        }
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-        }
-
-        /* Responsive */
+        /* --- RESPONSIVE --- */
         @media (max-width: 900px) {
-            .hero-grid { grid-template-columns: 1fr; text-align: center; }
-            .hero p { margin: 0 auto 2.5rem; }
-            .hero-buttons { justify-content: center; }
-            .hero-visual { display: none; }
-            .bento-grid { grid-template-columns: 1fr; grid-template-rows: auto; }
-            .bento-item.large, .bento-item.wide { grid-column: span 1; grid-row: span 1; }
-            .nav-dock { 
-                width: 90%; 
-                justify-content: space-around; 
-                padding: 0.5rem;
-                bottom: 1rem;
-            }
-            .nav-dock a span { display: none; } /* Cache le texte sur mobile, garde les icônes */
-            .nav-dock a { padding: 0.75rem; }
-            .nav-dock a.cta-dock span { display: inline; }
+            .nav-links { display: none; } /* Simplified for mobile, could add hamburger */
+            .stats-bar { grid-template-columns: 1fr; gap: 2rem; margin-top: 2rem; }
+            .rules-container { grid-template-columns: 1fr; }
+            .hero h1 { font-size: 2.5rem; }
         }
+        
+        /* Animation au scroll */
+        .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s ease; }
+        .reveal.active { opacity: 1; transform: translateY(0); }
     </style>
 </head>
 <body>
 
-    <div class="bg-mesh"></div>
-
-    <!-- Navigation Flottante (Dock) -->
-    <nav class="nav-dock">
-        <a href="#accueil" class="active"><i class="fas fa-home"></i> <span>Accueil</span></a>
-        <a href="#fonctionnalites"><i class="fas fa-bolt"></i> <span>Features</span></a>
-        <a href="#reglements"><i class="fas fa-shield-halved"></i> <span>Règles</span></a>
-        <a href="#equipe"><i class="fas fa-users"></i> <span>Équipe</span></a>
-        <a href="https://discord.gg/d8g2eztfbM" target="_blank" class="cta-dock"><i class="fab fa-discord"></i> <span>Rejoindre</span></a>
-    </nav>
+    <!-- NAVIGATION -->
+    <header>
+        <div class="container nav-inner">
+            <a href="#" class="logo">
+                <img src="https://cdn.discordapp.com/icons/1531829572453007533/c69bf91096081b8274e81a0a0eefa18e.webp?size=1024" alt="Logo">
+                <span>Zone Gaming QC</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#vision">Notre Vision</a></li>
+                <li><a href="#fonctionnalites">Fonctionnalités</a></li>
+                <li><a href="#equipe">L'Équipe</a></li>
+                <li><a href="#reglement">Règlement</a></li>
+            </ul>
+            <a href="https://discord.gg/d8g2eztfbM" target="_blank" class="btn btn-primary">
+                <i class="fab fa-discord"></i> Nous Rejoindre
+            </a>
+        </div>
+    </header>
 
     <!-- HERO -->
-    <section class="hero" id="accueil">
+    <section class="hero">
         <div class="container">
-            <div class="hero-grid">
-                <div class="hero-content">
-                    <div class="hero-badge">
-                        <i class="fas fa-circle" style="font-size: 8px; color: #22c55e;"></i>
-                        Serveur en ligne • 24/7
-                    </div>
-                    <h1>L'Expérience <br><span class="gradient-text">Gaming Ultime.</span></h1>
-                    <p>Zone Gaming QC n'est pas juste un serveur Discord. C'est une communauté québécoise vibrante, structurée et conçue pour les vrais passionnés.</p>
-                    <div class="hero-buttons">
-                        <a href="https://discord.gg/d8g2eztfbM" target="_blank" class="btn btn-primary">
-                            <i class="fab fa-discord"></i> Rejoindre l'aventure
-                        </a>
-                        <a href="Postuler/" class="btn btn-outline">
-                            <i class="fas fa-user-plus"></i> Postuler au Staff
-                        </a>
-                    </div>
+            <div class="hero-badge"><i class="fas fa-bolt"></i> Communauté 100% Québécoise</div>
+            <h1>Plus qu'un serveur,<br>une <span>vraie famille gaming.</span></h1>
+            <p>Bienvenue sur Zone Gaming QC. Nous avons construit un espace multigaming dynamique, sécurisé et accueillant, conçu par et pour les passionnés du Québec.</p>
+            <div class="hero-actions">
+                <a href="https://discord.gg/d8g2eztfbM" target="_blank" class="btn btn-primary">
+                    <i class="fab fa-discord"></i> Rejoindre le Discord
+                </a>
+                <a href="Postuler/" class="btn btn-outline">
+                    <i class="fas fa-user-shield"></i> Postuler au Staff
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- STATS BAR -->
+    <div class="container">
+        <div class="stats-bar reveal">
+            <div class="stat-item">
+                <h3>24/7</h3>
+                <p>Activité & Modération</p>
+            </div>
+            <div class="stat-item">
+                <h3>15+</h3>
+                <p>Jeux Supportés</p>
+            </div>
+            <div class="stat-item">
+                <h3>100%</h3>
+                <p>Franophone & Inclusif</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- VISION / ABOUT -->
+    <section id="vision">
+        <div class="container">
+            <div class="section-header reveal">
+                <h2>Notre Vision</h2>
+                <p>Zone Gaming QC est né d'un constat simple : il manquait un espace francophone au Québec qui allie professionnalisme de la modération et chaleur d'une communauté soudée.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card reveal">
+                    <div class="feature-icon"><i class="fas fa-heart"></i></div>
+                    <h3>Bienveillance Avant Tout</h3>
+                    <p>Nous croyons que le gaming doit rester un plaisir. Notre tolérance est de zéro pour la toxicité, le harcèlement ou la discrimination. Ici, on s'entraide et on progresse ensemble.</p>
                 </div>
-                <div class="hero-visual">
-                    <div class="glowing-orb"></div>
-                    <div class="hero-card">
-                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                            <i class="fas fa-users" style="color: var(--purple); font-size: 1.5rem;"></i>
-                            <span style="color: var(--text-muted); font-size: 0.9rem;">Membres Actifs</span>
-                        </div>
-                        <div class="stat-number">28+</div>
-                        <div style="color: var(--text-muted); font-size: 0.85rem;">Et ça ne fait que grandir</div>
-                    </div>
-                    <div class="hero-card">
-                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                            <i class="fas fa-shield-halved" style="color: var(--cyan); font-size: 1.5rem;"></i>
-                            <span style="color: var(--text-muted); font-size: 0.9rem;">Sécurité</span>
-                        </div>
-                        <div style="font-family: 'Space Grotesk'; font-size: 1.5rem; font-weight: 700;">100%</div>
-                        <div style="color: var(--text-muted); font-size: 0.85rem;">Modération active & IA</div>
-                    </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon"><i class="fas fa-rocket"></i></div>
+                    <h3>Innovation Constante</h3>
+                    <p>Grâce à nos développeurs internes, le serveur bénéficie d'outils sur mesure : bot de modération intelligent, site web dédié, et systèmes de tickets automatisés pour un support fluide.</p>
+                </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon"><i class="fas fa-users"></i></div>
+                    <h3>Une Équipe Dédiée</h3>
+                    <p>Notre staff n'est pas là pour "punir", mais pour animer, aider et garantir que chaque membre, du nouveau au vétéran, se sente chez lui.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- BENTO GRID FEATURES -->
-    <section id="fonctionnalites">
+    <!-- FONCTIONNALITÉS DÉTAILLÉES -->
+    <section id="fonctionnalites" style="background: var(--bg-surface);">
         <div class="container">
-            <div style="text-align: center; margin-bottom: 2rem;">
-                <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">Pourquoi nous <span class="gradient-text">choisir ?</span></h2>
-                <p style="color: var(--text-muted); max-width: 600px; margin: 0 auto;">Une architecture de serveur pensée pour l'expérience utilisateur, de la modération à l'animation.</p>
+            <div class="section-header reveal">
+                <h2>Tout ce dont tu as besoin</h2>
+                <p>Une infrastructure complète pour une expérience utilisateur sans friction.</p>
             </div>
-            
-            <div class="bento-grid">
-                <div class="bento-item large">
-                    <div>
-                        <div class="bento-icon"><i class="fas fa-robot"></i></div>
-                        <h3>IA & Automatisation</h3>
-                    </div>
-                    <p>Un bot personnalisé développé en interne. Modération intelligente, système de tickets avancé, et une IA conversationnelle unique pour animer la communauté.</p>
+            <div class="features-grid">
+                <div class="feature-card reveal">
+                    <div class="feature-icon"><i class="fas fa-gamepad"></i></div>
+                    <h3>Univers Multigaming</h3>
+                    <p>Des salons textuels et vocaux organisés par jeu pour ne jamais mélanger les discussions.</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> Valorant & CS2</li>
+                        <li><i class="fas fa-check"></i> Minecraft & GTA RP</li>
+                        <li><i class="fas fa-check"></i> Rocket League & Fortnite</li>
+                        <li><i class="fas fa-check"></i> Salons de discussion libre (Hors-sujet)</li>
+                    </ul>
                 </div>
-                <div class="bento-item">
-                    <div class="bento-icon"><i class="fas fa-trophy"></i></div>
-                    <h3>Événements</h3>
-                    <p>Tournois, soirées jeux et quiz réguliers avec des récompenses à la clé.</p>
+                <div class="feature-card reveal">
+                    <div class="feature-icon"><i class="fas fa-calendar-star"></i></div>
+                    <h3>Événements & Tournois</h3>
+                    <p>Nous ne nous contentons pas d'exister, nous animons. Participe régulièrement à nos activités.</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> Tournois communautaires avec lots</li>
+                        <li><i class="fas fa-check"></i> Soirées Quiz et Jeux de société</li>
+                        <li><i class="fas fa-check"></i> Sessions de jeu organisées par le staff</li>
+                        <li><i class="fas fa-check"></i> Giveaways réguliers pour les membres actifs</li>
+                    </ul>
                 </div>
-                <div class="bento-item">
-                    <div class="bento-icon"><i class="fas fa-code"></i></div>
-                    <h3>Site Web Dédié</h3>
-                    <p>Un portail web complet pour les candidatures, l'information et l'immersion.</p>
-                </div>
-                <div class="bento-item wide">
-                    <div style="display: flex; gap: 2rem; align-items: center; height: 100%;">
-                        <div class="bento-icon" style="margin-bottom: 0;"><i class="fas fa-handshake"></i></div>
-                        <div>
-                            <h3>Partenariats Structurés</h3>
-                            <p>Un processus clair et professionnel pour collaborer avec d'autres communautés de qualité.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- RÈGLEMENTS (ACCORDÉON) -->
-    <section id="reglements" style="background: rgba(255,255,255,0.02);">
-        <div class="container">
-            <div style="text-align: center; margin-bottom: 3rem;">
-                <h2 style="font-size: 2.5rem;">Le Cadre de <span class="gradient-text">Référence</span></h2>
-                <p style="color: var(--text-muted);">Des règles claires pour une communauté saine et respectueuse.</p>
-            </div>
-
-            <div class="accordion">
-                <div class="accordion-item active">
-                    <div class="accordion-header">
-                        <span><i class="fas fa-heart" style="color: var(--pink); margin-right: 10px;"></i> Respect & Tolérance (Zéro Tolérance)</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="accordion-content">
-                        Toute forme d'insulte, de harcèlement, de racisme ou de discrimination entraînera un bannissement immédiat et définitif. Nous prônons un espace inclusif et bienveillant pour tous les membres.
-                    </div>
-                </div>
-                <div class="accordion-item">
-                    <div class="accordion-header">
-                        <span><i class="fas fa-language" style="color: var(--cyan); margin-right: 10px;"></i> Langue & Communication</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="accordion-content">
-                        Le français est la langue officielle du serveur. L'anglais est toléré dans les salons de jeux internationaux, mais doit rester minoritaire. Évitez le langage SMS excessif.
-                    </div>
-                </div>
-                <div class="accordion-item">
-                    <div class="accordion-header">
-                        <span><i class="fas fa-ban" style="color: var(--purple); margin-right: 10px;"></i> Contenu NSFW & Spam</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="accordion-content">
-                        Tout contenu à caractère sexuel, violent ou choquant est formellement interdit. Le flood de messages et la publicité non autorisée sont strictement prohibés.
-                    </div>
-                </div>
-                <div class="accordion-item">
-                    <div class="accordion-header">
-                        <span><i class="fas fa-gavel" style="color: var(--pink); margin-right: 10px;"></i> Échelle des Sanctions</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                    <div class="accordion-content">
-                        1er : Avertissement • 2ème : Mute (10min) • 3ème : Kick • 4ème : Ban temporaire (7j) • 5ème : Ban définitif. Les infractions graves (NSFW, doxxing) contournent cette échelle.
-                    </div>
+                <div class="feature-card reveal">
+                    <div class="feature-icon"><i class="fas fa-shield-halved"></i></div>
+                    <h3>Sécurité & Support</h3>
+                    <p>Ta tranquillité d'esprit est notre priorité. Notre système de sécurité est proactif.</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> Anti-raid et filtre anti-spam avancé</li>
+                        <li><i class="fas fa-check"></i> Système de tickets privé et sécurisé</li>
+                        <li><i class="fas fa-check"></i> Modération humaine réactive 7j/7</li>
+                        <li><i class="fas fa-check"></i> Procédure de partenariat claire et structurée</li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -582,37 +326,79 @@
     <!-- ÉQUIPE -->
     <section id="equipe">
         <div class="container">
-            <div style="text-align: center; margin-bottom: 3rem;">
-                <h2 style="font-size: 2.5rem;">Les <span class="gradient-text">Architectes</span></h2>
-                <p style="color: var(--text-muted);">Les personnes qui construisent et maintiennent l'expérience Zone Gaming QC.</p>
+            <div class="section-header reveal">
+                <h2>Les Architectes</h2>
+                <p>Les personnes qui veillent au grain et font grandir Zone Gaming QC au quotidien.</p>
             </div>
-
-            <div class="team-scroll">
-                <div class="team-card">
-                    <img src="https://cdn.discordapp.com/avatars/1420852894386753688/4754a501167b4f9014aca5c5f8a11ca0.webp?size=1024" alt="La miss" class="team-avatar">
+            <div class="team-grid">
+                <div class="team-card reveal">
+                    <img src="https://cdn.discordapp.com/avatars/1420852894386753688/f13781c5c57599b0647caeb2dc608258.webp?size=1024" alt="La miss" class="team-avatar">
                     <h3>La miss</h3>
-                    <span class="team-role">Fondatrice</span>
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 1rem;">Visionnaire et leader. Elle assure la direction globale, l'identité unique et la croissance saine de la communauté.</p>
+                    <span class="team-role">Fondatrice & Propriétaire</span>
+                    <p>Visionnaire du projet. Elle définit l'identité du serveur, veille à l'harmonie de la communauté et prend les décisions stratégiques pour l'avenir de Zone Gaming QC.</p>
                 </div>
-                <div class="team-card">
+                <div class="team-card reveal">
                     <img src="https://cdn.discordapp.com/avatars/1281784488854159421/608fbe0e316e417b5e83539ef8555255.webp?size=1024" alt="Jacobin Babouain" class="team-avatar">
                     <h3>Jacobin Babouain</h3>
-                    <span class="team-role">Développeur & Co-Fondateur</span>
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 1rem;">Expert technique. Il conçoit le bot, le site web et l'infrastructure automatisée pour une expérience fluide et sécurisée.</p>
+                    <span class="team-role">Co-Fondateur & Développeur</span>
+                    <p>Le cerveau technique. Il conçoit et maintient le bot personnalisé, le site web, et l'infrastructure automatisée qui rend l'expérience serveur fluide et sécurisée.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- RÈGLEMENT / CHARTE -->
+    <section id="reglement" style="background: var(--bg-surface);">
+        <div class="container">
+            <div class="rules-container reveal">
+                <div class="rules-intro">
+                    <h3>La Charte de <span style="color: var(--primary);">Zone Gaming QC</span></h3>
+                    <p>Pour garantir une ambiance saine, nous avons établi des règles claires. En rejoignant le serveur, tu t'engages à les respecter. L'ignorance des règles n'est pas une excuse.</p>
+                    <a href="https://discord.gg/d8g2eztfbM" target="_blank" class="btn btn-outline" style="margin-top: 1rem;">
+                        Lire le règlement complet sur Discord
+                    </a>
+                </div>
+                <div class="rules-list">
+                    <div class="rule-item">
+                        <div class="rule-number">01</div>
+                        <div class="rule-content">
+                            <h4>Respect Absolu</h4>
+                            <p>Insultes, harcèlement, racisme ou toute forme de discrimination entraînent un bannissement immédiat et définitif.</p>
+                        </div>
+                    </div>
+                    <div class="rule-item">
+                        <div class="rule-number">02</div>
+                        <div class="rule-content">
+                            <h4>Contenu Approprié</h4>
+                            <p>Le contenu NSFW, violent ou choquant est strictement interdit, que ce soit en texte, image, vocal ou dans le pseudonyme.</p>
+                        </div>
+                    </div>
+                    <div class="rule-item">
+                        <div class="rule-number">03</div>
+                        <div class="rule-content">
+                            <h4>Pas de Spam ni de Publicité</h4>
+                            <p>Le flood, le spam de mentions et la promotion d'autres serveurs ou produits sans autorisation du staff sont prohibés.</p>
+                        </div>
+                    </div>
+                    <div class="rule-item">
+                        <div class="rule-number">04</div>
+                        <div class="rule-content">
+                            <h4>Autorité du Staff</h4>
+                            <p>Les décisions de l'équipe de modération sont finales. Toute contestation doit se faire de manière respectueuse et en privé via un ticket.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- CTA FINAL -->
-    <section class="cta-section">
-        <div class="container">
-            <h2>Prêt à rejoindre <br><span class="gradient-text">la Zone ?</span></h2>
-            <p style="color: var(--text-muted); max-width: 600px; margin: 0 auto 2.5rem; font-size: 1.1rem;">
-                Ne reste pas spectateur. Viens jouer, discuter et faire partie d'une communauté qui te ressemble.
-            </p>
-            <a href="https://discord.gg/d8g2eztfbM" target="_blank" class="btn btn-primary" style="font-size: 1.2rem; padding: 1.25rem 3rem;">
-                <i class="fab fa-discord"></i> Rejoindre le Serveur
+    <section class="cta-footer">
+        <div class="container reveal">
+            <h2>Prêt à rejoindre l'aventure ?</h2>
+            <p>Ne reste pas spectateur. Viens jouer, discuter et faire partie d'une communauté qui te ressemble. Ton prochain meilleur ami gaming t'attend peut-être déjà.</p>
+            <a href="https://discord.gg/d8g2eztfbM" target="_blank" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem 2.5rem;">
+                <i class="fab fa-discord"></i> Rejoindre Zone Gaming QC
             </a>
         </div>
     </section>
@@ -621,53 +407,36 @@
     <footer>
         <div class="container">
             <div class="footer-links">
-                <a href="https://discord.gg/d8g2eztfbM" target="_blank">Discord</a>
-                <a href="Postuler/">Recrutement</a>
-                <a href="#reglements">Règlement</a>
+                <a href="https://discord.gg/d8g2eztfbM" target="_blank">Serveur Discord</a>
+                <a href="Postuler/">Recrutement Staff</a>
+                <a href="#reglement">Règlement Complet</a>
+                <a href="mailto:contact@zonegamingqc.com">Contact</a>
             </div>
             <p>&copy; 2026 Zone Gaming QC. Tous droits réservés.</p>
-            <p style="margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.6;">Conçu et développé par Jacobin Babouain</p>
+            <p style="margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.6;">Conçu et développé avec passion par Jacobin Babouain</p>
         </div>
     </footer>
 
+    <!-- SCRIPT D'ANIMATION AU SCROLL -->
     <script>
-        // Accordéon interactif
-        document.querySelectorAll('.accordion-header').forEach(header => {
-            header.addEventListener('click', () => {
-                const item = header.parentElement;
-                const isActive = item.classList.contains('active');
-                
-                // Fermer tous les autres
-                document.querySelectorAll('.accordion-item').forEach(i => i.classList.remove('active'));
-                
-                // Ouvrir celui-ci si il n'était pas actif
-                if (!isActive) {
-                    item.classList.add('active');
+        // Animation d'apparition au défilement
+        const revealElements = document.querySelectorAll('.reveal');
+        
+        const revealOnScroll = () => {
+            const windowHeight = window.innerHeight;
+            const elementVisible = 100;
+            
+            revealElements.forEach((reveal) => {
+                const elementTop = reveal.getBoundingClientRect().top;
+                if (elementTop < windowHeight - elementVisible) {
+                    reveal.classList.add('active');
                 }
             });
-        });
-
-        // Navigation active au scroll
-        const sections = document.querySelectorAll('section');
-        const navLinks = document.querySelectorAll('.nav-dock a');
-
-        window.addEventListener('scroll', () => {
-            let current = '';
-            sections.forEach(section => {
-                const sectionTop = section.offsetTop;
-                const sectionHeight = section.clientHeight;
-                if (scrollY >= (sectionTop - sectionHeight / 3)) {
-                    current = section.getAttribute('id');
-                }
-            });
-
-            navLinks.forEach(link => {
-                link.classList.remove('active');
-                if (link.getAttribute('href').slice(1) === current) {
-                    link.classList.add('active');
-                }
-            });
-        });
+        };
+        
+        window.addEventListener('scroll', revealOnScroll);
+        // Déclencher une fois au chargement
+        revealOnScroll();
     </script>
 </body>
 </html>
